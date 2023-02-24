@@ -8,32 +8,31 @@ namespace GloryCompiler
 {
     internal class Lexer
     {
-        public string lexerString;
-        public int currentPosition;
-        public List<Token> output;
+        string _currentStr;
+        int _currentPos;
+        List<Token> _result;
 
         public Lexer(string str)
         {
-            lexerString = str;
-            currentPosition = 0;
-            output = new List<Token>();
-            Iterate();
+            _currentStr = str;
+            _currentPos = 0;
+            _result = new List<Token>();
         }
 
-        private void AddToken(Token token) => output.Add(token);
+        private void AddToken(Token token) => _result.Add(token);
 
         private char PeekAhead(int count)
         {
-            if (currentPosition + count < lexerString.Length)
-                return lexerString[currentPosition + count];
+            if (_currentPos + count < _currentStr.Length)
+                return _currentStr[_currentPos + count];
             else 
                 return (char)0;
         }
 
         public char ReadChar()
         {
-            if (currentPosition < lexerString.Length)
-                return lexerString[currentPosition];
+            if (_currentPos < _currentStr.Length)
+                return _currentStr[_currentPos];
             else 
                 return (char)0;
         }
@@ -44,20 +43,20 @@ namespace GloryCompiler
             while (char.IsLetter(ReadChar()))
             {
                 stringLiteral = stringLiteral + ReadChar();
-                currentPosition++;
+                _currentPos++;
             }
             
             if (stringLiteral != "")
             {
-                currentPosition--;
+                _currentPos--;
                 AddToken(new IdentifierLiteralToken(stringLiteral));
             }
                 
         }
 
-        public void Iterate()
+        public List<Token> Process()
         {
-            for (; currentPosition < lexerString.Length; currentPosition++)
+            for (; _currentPos < _currentStr.Length; _currentPos++)
             {
                 char currentChar = ReadChar();
                 switch (currentChar)
@@ -92,7 +91,7 @@ namespace GloryCompiler
                     case '=':
                         if (PeekAhead(1) == '=')
                         {
-                            currentPosition++;
+                            _currentPos++;
                             AddToken(new Token(TokenType.DoubleEquals));
                         }
                         else
@@ -100,11 +99,11 @@ namespace GloryCompiler
                         break;
                     case '"':
                         string stringLiteral = "";
-                        currentPosition++;
+                        _currentPos++;
                         while (ReadChar() != '"')
                         {
                             stringLiteral = stringLiteral + ReadChar();
-                            currentPosition++;
+                            _currentPos++;
                         }
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
@@ -112,7 +111,7 @@ namespace GloryCompiler
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k')
                         {
                             AddToken(new Token(TokenType.Blank));
-                            currentPosition += 4;
+                            _currentPos += 4;
                         }
                         else
                             HandleIndentifier();
@@ -121,7 +120,7 @@ namespace GloryCompiler
                         if(PeekAhead(1) == 't' && PeekAhead(2) == 't')
                         {
                             AddToken(new Token(TokenType.IntType));
-                            currentPosition += 2;
+                            _currentPos += 2;
                         }
                         else
                             HandleIndentifier();
@@ -133,7 +132,7 @@ namespace GloryCompiler
                             while (char.IsDigit(ReadChar()))
                             {
                                 newStringLiteral = newStringLiteral + ReadChar();
-                                currentPosition++;
+                                _currentPos++;
                             }
                             AddToken(new NumberLiteralToken(int.Parse(newStringLiteral)));
                         }
@@ -145,6 +144,7 @@ namespace GloryCompiler
                 }
             }
             Console.WriteLine("Debug Point");
+            return _result;
         }
     }
 }
