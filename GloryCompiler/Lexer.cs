@@ -105,12 +105,12 @@ namespace GloryCompiler
                         break;
                     case '"':
                         string stringLiteral = "";
+                        currentPosition++;
                         while (ReadChar() != '"')
                         {
                             stringLiteral = stringLiteral + ReadChar();
                             currentPosition++;
                         }
-                        currentPosition--;
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
                     case 'b':
