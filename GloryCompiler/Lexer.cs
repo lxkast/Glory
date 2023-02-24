@@ -20,27 +20,22 @@ namespace GloryCompiler
             Iterate();
         }
 
-        private void AddToken(Token token)
-        {
-            output.Add(token);
-        }
+        private void AddToken(Token token) => output.Add(token);
 
         private char PeekAhead(int count)
         {
             if (currentPosition + count < lexerString.Length)
-            {
                 return lexerString[currentPosition + count];
-            }
-            else return (char)0;
+            else 
+                return (char)0;
         }
 
         public char ReadChar()
         {
             if (currentPosition < lexerString.Length)
-            {
                 return lexerString[currentPosition];
-            }
-            else return (char)0;
+            else 
+                return (char)0;
         }
 
         public void HandleIndentifier()
