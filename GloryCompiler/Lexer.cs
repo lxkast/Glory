@@ -68,40 +68,40 @@ namespace GloryCompiler
                 switch (currentChar)
                 {
                     case '+':
-                        AddToken(new Token(TokenType.PLUS));
+                        AddToken(new Token(TokenType.Plus));
                         break;
                     case '-':
-                        AddToken(new Token(TokenType.MINUS));
+                        AddToken(new Token(TokenType.Minus));
                         break;
                     case '*':
-                        AddToken(new Token(TokenType.TIMES));
+                        AddToken(new Token(TokenType.Times));
                         break;
                     case '/':
-                        AddToken(new Token(TokenType.DIVIDE));
+                        AddToken(new Token(TokenType.Divide));
                         break;
                     case ';':
-                        AddToken(new Token(TokenType.SEMICOLON));
+                        AddToken(new Token(TokenType.Semicolon));
                         break;
                     case '(':
-                        AddToken(new Token(TokenType.OPENBRACKET));
+                        AddToken(new Token(TokenType.OpenBracket));
                         break;
                     case ')':
-                        AddToken(new Token(TokenType.CLOSEBRACKET));
+                        AddToken(new Token(TokenType.CloseBracket));
                         break;
                     case '{':
-                        AddToken(new Token(TokenType.OPENCURLY));
+                        AddToken(new Token(TokenType.OpenCurly));
                         break;
                     case '}':
-                        AddToken(new Token(TokenType.CLOSECURLY));
+                        AddToken(new Token(TokenType.CloseCurly));
                         break;
                     case '=':
                         if (PeekAhead(1) == '=')
                         {
                             currentPosition++;
-                            AddToken(new Token(TokenType.DOUBLEEQUALS));
+                            AddToken(new Token(TokenType.DoubleEquals));
                         }
                         else
-                            AddToken(new Token(TokenType.EQUALS));
+                            AddToken(new Token(TokenType.Equals));
                         break;
                     case '"':
                         string stringLiteral = "";
@@ -116,7 +116,7 @@ namespace GloryCompiler
                     case 'b':
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k')
                         {
-                            AddToken(new Token(TokenType.BLANK));
+                            AddToken(new Token(TokenType.Blank));
                             currentPosition += 4;
                         }
                         else
@@ -125,7 +125,7 @@ namespace GloryCompiler
                     case 'i':
                         if(PeekAhead(1) == 't' && PeekAhead(2) == 't')
                         {
-                            AddToken(new Token(TokenType.INTTYPE));
+                            AddToken(new Token(TokenType.IntType));
                             currentPosition += 2;
                         }
                         else

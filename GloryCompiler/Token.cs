@@ -13,14 +13,12 @@ namespace GloryCompiler
         {
             Type = type;
         }
-
-        
     }
 
     internal class NumberLiteralToken : Token
     {
         public int Val;
-        public NumberLiteralToken(int val) : base(TokenType.NUMLITTLE)
+        public NumberLiteralToken(int val) : base(TokenType.NumLiteral)
         {
             Val = val;
         }
@@ -29,7 +27,7 @@ namespace GloryCompiler
     internal class StringLiteralToken : Token
     {
         public string Val;
-        public StringLiteralToken(string val) : base(TokenType.STRING)
+        public StringLiteralToken(string val) : base(TokenType.String)
         {
             Val = val;
         }
@@ -38,7 +36,7 @@ namespace GloryCompiler
     internal class IdentifierLiteralToken : Token
     {
         public string Val;
-        public IdentifierLiteralToken(string val) : base(TokenType.IDENTIFIER)
+        public IdentifierLiteralToken(string val) : base(TokenType.Identifier)
         {
             Val = val;
         }
@@ -47,27 +45,37 @@ namespace GloryCompiler
     public enum TokenType
     {
         //FLOAT,
-        PLUS, //tick
-        MINUS, //tick
-        TIMES, //tick
-        DIVIDE, //tick
-        SEMICOLON, //tick
-        OPENBRACKET,//tick
-        CLOSEBRACKET, //tick
-        OPENCURLY, //tick
-        CLOSECURLY, //tick
-        INTTYPE, //tick
-        STRINGTYPE,
-        STRING, //tick
-        NUMLITTLE,
-        BLANK, //tick
-        IDENTIFIER,
-        IF,
-        ELIF,
-        ELSE,
-        LESSTHAN,
-        EQUALS, //tick
-        DOUBLEEQUALS, //tick
-        GREATERTHAN
+
+        // Operators:
+        Plus, //tick
+        Minus, //tick
+        Times, //tick
+        Divide, //tick
+        LessThan,
+        Equals, //tick
+        DoubleEquals, //tick
+        GreaterThan,
+
+        // Types:
+        IntType, //tick
+        StringType,
+        Blank, //tick
+
+        // General Structure:
+        Semicolon, //tick
+        OpenBracket,//tick
+        CloseBracket, //tick
+        OpenCurly, //tick
+        CloseCurly, //tick
+
+        // Literals:
+        String, //tick
+        NumLiteral,
+        Identifier,
+
+        // Keywords:
+        If,
+        ElseIf,
+        Else
     }
 }
