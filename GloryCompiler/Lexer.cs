@@ -123,10 +123,37 @@ namespace GloryCompiler
                             HandleIndentifier();
                         break;
                     case 'i':
-                        if(PeekAhead(1) == 't' && PeekAhead(2) == 't')
+                        if(PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
                         {
                             AddToken(new Token(TokenType.INTTYPE));
-                            currentPosition += 2;
+                            currentPosition += 3;
+                        }
+
+                        else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
+                        {
+                            AddToken(new Token(TokenType.IF));
+                        }
+                        else
+                            HandleIndentifier();
+                        break;
+                    case 'e':
+                        if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 'i' && PeekAhead(4) == 'f' && char.IsWhiteSpace(PeekAhead(5)))
+                        {
+                            AddToken(new Token(TokenType.ELIF));
+                            currentPosition += 5;
+                        }
+                        else if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
+                        {
+                            AddToken(new Token(TokenType.ELSE));
+                        }
+                        else
+                            HandleIndentifier();
+                        break;
+                    case 's':
+                        if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && char.IsWhiteSpace(PeekAhead(6)))
+                        {
+                            AddToken(new Token(TokenType.INTTYPE));
+                            currentPosition += 6;
                         }
                         else
                             HandleIndentifier();

@@ -59,15 +59,17 @@ namespace GloryCompiler
         INTTYPE, //tick
         STRINGTYPE,
         STRING, //tick
-        NUMLITTLE,
+        NUMLITTLE, //tick
         BLANK, //tick
-        IDENTIFIER,
-        IF,
-        ELIF,
-        ELSE,
+        IDENTIFIER, //tick
+        IF, //tick
+        ELIF, //tick
+        ELSE, //tick
         LESSTHAN,
+        LESSTHANEQUALS,
         EQUALS, //tick
         DOUBLEEQUALS, //tick
-        GREATERTHAN
+        GREATERTHAN,
+        GREATERTHANEQUALS
     }
 }
