@@ -23,7 +23,7 @@ namespace GloryCompiler
         {
             for (; _currentPos < _currentStr.Length; _currentPos++)
             {
-                char currentChar = ReadChar();
+                char currentChar = GetCurrentChar();
                 switch (currentChar)
                 {
                     case '+':
@@ -65,9 +65,9 @@ namespace GloryCompiler
                     case '"':
                         string stringLiteral = "";
                         _currentPos++;
-                        while (ReadChar() != '"')
+                        while (GetCurrentChar() != '"')
                         {
-                            stringLiteral = stringLiteral + ReadChar();
+                            stringLiteral = stringLiteral + GetCurrentChar();
                             _currentPos++;
                         }
                         AddToken(new StringLiteralToken(stringLiteral));
@@ -79,7 +79,7 @@ namespace GloryCompiler
                             _currentPos += 4;
                         }
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
                         break;
                     case 'i':
                         if (PeekAhead(1) == 't' && PeekAhead(2) == 't')
@@ -88,45 +88,45 @@ namespace GloryCompiler
                             _currentPos += 2;
                         }
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
                         break;
                     default:
                         if (char.IsDigit(currentChar))
-                        {
-                            string newStringLiteral = "";
-                            while (char.IsDigit(ReadChar()))
-                            {
-                                newStringLiteral = newStringLiteral + ReadChar();
-                                _currentPos++;
-                            }
-                            AddToken(new NumberLiteralToken(int.Parse(newStringLiteral)));
-                        }
+                            ReadNumber();
                         else
-                        {
-                            HandleIndentifier();
-                        }
+                            ReadIdentifier();
                         break;
                 }
             }
-            Console.WriteLine("Debug Point");
+
             return _result;
         }
 
-        public void HandleIndentifier()
+        private void ReadNumber()
         {
-            string stringLiteral = "";
-            while (char.IsLetter(ReadChar()))
+            string newNumLiteral = "";
+            while (char.IsDigit(GetCurrentChar()))
             {
-                stringLiteral = stringLiteral + ReadChar();
+                newNumLiteral += GetCurrentChar();
+                _currentPos++;
+            }
+            AddToken(new NumberLiteralToken(int.Parse(newNumLiteral)));
+        }
+
+        private void ReadIdentifier()
+        {
+            string currentIdentifier = "";
+            while (char.IsLetter(GetCurrentChar()))
+            {
+                currentIdentifier = currentIdentifier + GetCurrentChar();
                 _currentPos++;
             }
             
-            if (stringLiteral != "")
+            if (currentIdentifier != "")
             {
-                _currentPos--;
-                AddToken(new IdentifierLiteralToken(stringLiteral));
+                _currentPos--; // The last letter we encountered was not part of the identifier, so make sure it doesn't get skipped.
+                AddToken(new IdentifierLiteralToken(currentIdentifier));
             }
-                
         }
 
         private char PeekAhead(int count)
@@ -137,7 +137,7 @@ namespace GloryCompiler
                 return (char)0;
         }
 
-        public char ReadChar()
+        private char GetCurrentChar()
         {
             if (_currentPos < _currentStr.Length)
                 return _currentStr[_currentPos];
