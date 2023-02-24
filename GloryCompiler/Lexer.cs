@@ -19,41 +19,6 @@ namespace GloryCompiler
             _result = new List<Token>();
         }
 
-        private void AddToken(Token token) => _result.Add(token);
-
-        private char PeekAhead(int count)
-        {
-            if (_currentPos + count < _currentStr.Length)
-                return _currentStr[_currentPos + count];
-            else 
-                return (char)0;
-        }
-
-        public char ReadChar()
-        {
-            if (_currentPos < _currentStr.Length)
-                return _currentStr[_currentPos];
-            else 
-                return (char)0;
-        }
-
-        public void HandleIndentifier()
-        {
-            string stringLiteral = "";
-            while (char.IsLetter(ReadChar()))
-            {
-                stringLiteral = stringLiteral + ReadChar();
-                _currentPos++;
-            }
-            
-            if (stringLiteral != "")
-            {
-                _currentPos--;
-                AddToken(new IdentifierLiteralToken(stringLiteral));
-            }
-                
-        }
-
         public List<Token> Process()
         {
             for (; _currentPos < _currentStr.Length; _currentPos++)
@@ -117,7 +82,7 @@ namespace GloryCompiler
                             HandleIndentifier();
                         break;
                     case 'i':
-                        if(PeekAhead(1) == 't' && PeekAhead(2) == 't')
+                        if (PeekAhead(1) == 't' && PeekAhead(2) == 't')
                         {
                             AddToken(new Token(TokenType.IntType));
                             _currentPos += 2;
@@ -146,5 +111,40 @@ namespace GloryCompiler
             Console.WriteLine("Debug Point");
             return _result;
         }
+
+        public void HandleIndentifier()
+        {
+            string stringLiteral = "";
+            while (char.IsLetter(ReadChar()))
+            {
+                stringLiteral = stringLiteral + ReadChar();
+                _currentPos++;
+            }
+            
+            if (stringLiteral != "")
+            {
+                _currentPos--;
+                AddToken(new IdentifierLiteralToken(stringLiteral));
+            }
+                
+        }
+
+        private char PeekAhead(int count)
+        {
+            if (_currentPos + count < _currentStr.Length)
+                return _currentStr[_currentPos + count];
+            else
+                return (char)0;
+        }
+
+        public char ReadChar()
+        {
+            if (_currentPos < _currentStr.Length)
+                return _currentStr[_currentPos];
+            else
+                return (char)0;
+        }
+
+        private void AddToken(Token token) => _result.Add(token);
     }
 }
