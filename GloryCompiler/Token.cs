@@ -33,16 +33,17 @@ namespace GloryCompiler
     public enum TokenType
     {
         //FLOAT,
-
         // Operators:
         Plus, //tick
         Minus, //tick
         Times, //tick
         Divide, //tick
         LessThan,
+        LessThanEquals,
         Equals, //tick
         DoubleEquals, //tick
         GreaterThan,
+        GreaterThanEquals,
 
         // Types:
         IntType, //tick
