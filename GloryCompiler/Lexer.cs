@@ -62,6 +62,24 @@ namespace GloryCompiler
                         else
                             AddToken(new Token(TokenType.Equals));
                         break;
+                    case '>':
+                        if (PeekAhead(1) == '=')
+                        {
+                            _currentPos++;
+                            AddToken(new Token(TokenType.GreaterThanEquals));
+                        }
+                        else
+                            AddToken(new Token(TokenType.GreaterThan));
+                        break;
+                    case '<':
+                        if (PeekAhead(1) == '=')
+                        {
+                            _currentPos++;
+                            AddToken(new Token(TokenType.LessThanEquals));
+                        }
+                        else
+                            AddToken(new Token(TokenType.LessThan));
+                        break;
                     case '"':
                         string stringLiteral = "";
                         _currentPos++;
@@ -73,25 +91,18 @@ namespace GloryCompiler
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
                     case 'b':
-                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k')
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k' && char.IsWhiteSpace(PeekAhead(5)))
                         {
                             AddToken(new Token(TokenType.Blank));
+                            _currentPos += 5;
+                        }
+                        else if (PeekAhead(1) == 'o' && PeekAhead(2) == 'o' && PeekAhead(3) == 'l' && char.IsWhiteSpace(PeekAhead(4)))
+                        {
+                            AddToken(new Token(TokenType.Bool));
                             _currentPos += 4;
                         }
                         else
                             ReadIdentifier();
-                        break;
-                    case 'i':
-                        if (PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
-                        {
-                            AddToken(new Token(TokenType.IntType));
-                            _currentPos += 3;
-                        }
-                        else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
-                            AddToken(new Token(TokenType.If));
-                        else
-                            ReadIdentifier();
-
                         break;
                     case 'e':
                         if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 'i' && PeekAhead(4) == 'f' && char.IsWhiteSpace(PeekAhead(5)))
@@ -101,6 +112,28 @@ namespace GloryCompiler
                         }
                         else if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
                             AddToken(new Token(TokenType.Else));
+                        else
+                            ReadIdentifier();
+
+                        break;
+                    case 'f':
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'o' && PeekAhead(3) == 'a' && PeekAhead(4) == 't' && char.IsWhiteSpace(PeekAhead(5)))
+                        {
+                            AddToken(new Token(TokenType.IntType));
+                            _currentPos += 6;
+                        }
+                        else
+                            ReadIdentifier();
+                        break;
+
+                    case 'i':
+                        if (PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
+                        {
+                            AddToken(new Token(TokenType.IntType));
+                            _currentPos += 3;
+                        }
+                        else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
+                            AddToken(new Token(TokenType.If));
                         else
                             ReadIdentifier();
 

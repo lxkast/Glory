@@ -32,22 +32,23 @@ namespace GloryCompiler
 
     public enum TokenType
     {
-        //FLOAT,
         // Operators:
         Plus, //tick
         Minus, //tick
         Times, //tick
         Divide, //tick
-        LessThan,
-        LessThanEquals,
+        LessThan, //tick
+        LessThanEquals, //tick
         Equals, //tick
         DoubleEquals, //tick
-        GreaterThan,
-        GreaterThanEquals,
+        GreaterThan, //tick
+        GreaterThanEquals, //tick
 
         // Types:
         IntType, //tick
-        StringType,
+        StringType, //tick
+        FloatType, //tick
+        Bool, //tick
         Blank, //tick
 
         // General Structure:
@@ -59,12 +60,12 @@ namespace GloryCompiler
 
         // Literals:
         StringLiteral, //tick
-        NumberLiteral,
-        Identifier,
+        NumberLiteral, //tick
+        Identifier, //tick
 
         // Keywords:
-        If,
-        ElseIf,
-        Else
+        If, //tick
+        ElseIf, //tick
+        Else //tick
     }
 }
