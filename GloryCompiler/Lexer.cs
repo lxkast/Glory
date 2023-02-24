@@ -8,175 +8,169 @@ namespace GloryCompiler
 {
     internal class Lexer
     {
-        public string lexerString;
-        public int currentPosition;
-        public List<Token> output;
+        string _currentStr;
+        int _currentPos;
+        List<Token> _result;
 
         public Lexer(string str)
         {
-            lexerString = str;
-            currentPosition = 0;
-            output = new List<Token>();
-            Iterate();
+            _currentStr = str;
+            _currentPos = 0;
+            _result = new List<Token>();
         }
 
-        private void AddToken(Token token)
+        public List<Token> Process()
         {
-            output.Add(token);
-        }
-
-        private char PeekAhead(int count)
-        {
-            if (currentPosition + count < lexerString.Length)
+            for (; _currentPos < _currentStr.Length; _currentPos++)
             {
-                return lexerString[currentPosition + count];
-            }
-            else return (char)0;
-        }
-
-        public char ReadChar()
-        {
-            if (currentPosition < lexerString.Length)
-            {
-                return lexerString[currentPosition];
-            }
-            else return (char)0;
-        }
-
-        public void HandleIndentifier()
-        {
-            string stringLiteral = "";
-            while (char.IsLetter(ReadChar()))
-            {
-                stringLiteral = stringLiteral + ReadChar();
-                currentPosition++;
-            }
-            
-            if (stringLiteral != "")
-            {
-                currentPosition--;
-                AddToken(new IdentifierLiteralToken(stringLiteral));
-            }
-                
-        }
-
-        public void Iterate()
-        {
-            for (; currentPosition < lexerString.Length; currentPosition++)
-            {
-                char currentChar = ReadChar();
+                char currentChar = GetCurrentChar();
                 switch (currentChar)
                 {
                     case '+':
-                        AddToken(new Token(TokenType.PLUS));
+                        AddToken(new Token(TokenType.Plus));
                         break;
                     case '-':
-                        AddToken(new Token(TokenType.MINUS));
+                        AddToken(new Token(TokenType.Minus));
                         break;
                     case '*':
-                        AddToken(new Token(TokenType.TIMES));
+                        AddToken(new Token(TokenType.Times));
                         break;
                     case '/':
-                        AddToken(new Token(TokenType.DIVIDE));
+                        AddToken(new Token(TokenType.Divide));
                         break;
                     case ';':
-                        AddToken(new Token(TokenType.SEMICOLON));
+                        AddToken(new Token(TokenType.Semicolon));
                         break;
                     case '(':
-                        AddToken(new Token(TokenType.OPENBRACKET));
+                        AddToken(new Token(TokenType.OpenBracket));
                         break;
                     case ')':
-                        AddToken(new Token(TokenType.CLOSEBRACKET));
+                        AddToken(new Token(TokenType.CloseBracket));
                         break;
                     case '{':
-                        AddToken(new Token(TokenType.OPENCURLY));
+                        AddToken(new Token(TokenType.OpenCurly));
                         break;
                     case '}':
-                        AddToken(new Token(TokenType.CLOSECURLY));
+                        AddToken(new Token(TokenType.CloseCurly));
                         break;
                     case '=':
                         if (PeekAhead(1) == '=')
                         {
-                            currentPosition++;
-                            AddToken(new Token(TokenType.DOUBLEEQUALS));
+                            _currentPos++;
+                            AddToken(new Token(TokenType.DoubleEquals));
                         }
                         else
-                            AddToken(new Token(TokenType.EQUALS));
+                            AddToken(new Token(TokenType.Equals));
                         break;
                     case '"':
                         string stringLiteral = "";
-                        currentPosition++;
-                        while (ReadChar() != '"')
+                        _currentPos++;
+                        while (GetCurrentChar() != '"')
                         {
-                            stringLiteral = stringLiteral + ReadChar();
-                            currentPosition++;
+                            stringLiteral = stringLiteral + GetCurrentChar();
+                            _currentPos++;
                         }
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
                     case 'b':
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k')
                         {
-                            AddToken(new Token(TokenType.BLANK));
-                            currentPosition += 4;
+                            AddToken(new Token(TokenType.Blank));
+                            _currentPos += 4;
                         }
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
                         break;
                     case 'i':
-                        if(PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
+                        if (PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
                         {
-                            AddToken(new Token(TokenType.INTTYPE));
-                            currentPosition += 3;
+                            AddToken(new Token(TokenType.IntType));
+                            _currentPos += 3;
                         }
-
                         else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
-                        {
-                            AddToken(new Token(TokenType.IF));
-                        }
+                            AddToken(new Token(TokenType.If));
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
+
                         break;
                     case 'e':
                         if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 'i' && PeekAhead(4) == 'f' && char.IsWhiteSpace(PeekAhead(5)))
                         {
-                            AddToken(new Token(TokenType.ELIF));
-                            currentPosition += 5;
+                            AddToken(new Token(TokenType.ElseIf));
+                            _currentPos += 5;
                         }
                         else if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
-                        {
-                            AddToken(new Token(TokenType.ELSE));
-                        }
+                            AddToken(new Token(TokenType.Else));
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
+
                         break;
                     case 's':
                         if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && char.IsWhiteSpace(PeekAhead(6)))
                         {
-                            AddToken(new Token(TokenType.INTTYPE));
-                            currentPosition += 6;
+                            AddToken(new Token(TokenType.IntType));
+                            _currentPos += 6;
                         }
                         else
-                            HandleIndentifier();
+                            ReadIdentifier();
+
                         break;
                     default:
                         if (char.IsDigit(currentChar))
-                        {
-                            string newStringLiteral = "";
-                            while (char.IsDigit(ReadChar()))
-                            {
-                                newStringLiteral = newStringLiteral + ReadChar();
-                                currentPosition++;
-                            }
-                            AddToken(new NumberLiteralToken(int.Parse(newStringLiteral)));
-                        }
+                            ReadNumber();
                         else
-                        {
-                            HandleIndentifier();
-                        }
+                            ReadIdentifier();
+
                         break;
                 }
             }
-            Console.WriteLine("Debug Point");
+
+            return _result;
         }
+
+        private void ReadNumber()
+        {
+            string newNumLiteral = "";
+            while (char.IsDigit(GetCurrentChar()))
+            {
+                newNumLiteral += GetCurrentChar();
+                _currentPos++;
+            }
+            AddToken(new NumberLiteralToken(int.Parse(newNumLiteral)));
+        }
+
+        private void ReadIdentifier()
+        {
+            string currentIdentifier = "";
+            while (char.IsLetter(GetCurrentChar()))
+            {
+                currentIdentifier = currentIdentifier + GetCurrentChar();
+                _currentPos++;
+            }
+            
+            if (currentIdentifier != "")
+            {
+                _currentPos--; // The last letter we encountered was not part of the identifier, so make sure it doesn't get skipped.
+                AddToken(new IdentifierLiteralToken(currentIdentifier));
+            }
+        }
+
+        private char PeekAhead(int count)
+        {
+            if (_currentPos + count < _currentStr.Length)
+                return _currentStr[_currentPos + count];
+            else
+                return (char)0;
+        }
+
+        private char GetCurrentChar()
+        {
+            if (_currentPos < _currentStr.Length)
+                return _currentStr[_currentPos];
+            else
+                return (char)0;
+        }
+
+        private void AddToken(Token token) => _result.Add(token);
     }
 }

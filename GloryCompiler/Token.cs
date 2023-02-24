@@ -9,67 +9,62 @@ namespace GloryCompiler
     internal class Token
     {
         public TokenType Type;
-        public Token(TokenType type)
-        {
-            Type = type;
-        }
-
-        
+        public Token(TokenType type) => Type = type;
     }
 
     internal class NumberLiteralToken : Token
     {
         public int Val;
-        public NumberLiteralToken(int val) : base(TokenType.NUMLITTLE)
-        {
-            Val = val;
-        }
+        public NumberLiteralToken(int val) : base(TokenType.NumberLiteral) => Val = val;
     }
 
     internal class StringLiteralToken : Token
     {
         public string Val;
-        public StringLiteralToken(string val) : base(TokenType.STRING)
-        {
-            Val = val;
-        }
+        public StringLiteralToken(string val) : base(TokenType.StringLiteral) => Val = val;
     }
 
     internal class IdentifierLiteralToken : Token
     {
         public string Val;
-        public IdentifierLiteralToken(string val) : base(TokenType.IDENTIFIER)
-        {
-            Val = val;
-        }
+        public IdentifierLiteralToken(string val) : base(TokenType.Identifier) => Val = val;
     }
 
     public enum TokenType
     {
         //FLOAT,
-        PLUS, //tick
-        MINUS, //tick
-        TIMES, //tick
-        DIVIDE, //tick
-        SEMICOLON, //tick
-        OPENBRACKET,//tick
-        CLOSEBRACKET, //tick
-        OPENCURLY, //tick
-        CLOSECURLY, //tick
-        INTTYPE, //tick
-        STRINGTYPE,
-        STRING, //tick
-        NUMLITTLE, //tick
-        BLANK, //tick
-        IDENTIFIER, //tick
-        IF, //tick
-        ELIF, //tick
-        ELSE, //tick
-        LESSTHAN,
-        LESSTHANEQUALS,
-        EQUALS, //tick
-        DOUBLEEQUALS, //tick
-        GREATERTHAN,
-        GREATERTHANEQUALS
+        // Operators:
+        Plus, //tick
+        Minus, //tick
+        Times, //tick
+        Divide, //tick
+        LessThan,
+        LessThanEquals,
+        Equals, //tick
+        DoubleEquals, //tick
+        GreaterThan,
+        GreaterThanEquals,
+
+        // Types:
+        IntType, //tick
+        StringType,
+        Blank, //tick
+
+        // General Structure:
+        Semicolon, //tick
+        OpenBracket,//tick
+        CloseBracket, //tick
+        OpenCurly, //tick
+        CloseCurly, //tick
+
+        // Literals:
+        StringLiteral, //tick
+        NumberLiteral,
+        Identifier,
+
+        // Keywords:
+        If,
+        ElseIf,
+        Else
     }
 }
