@@ -18,7 +18,7 @@ namespace GloryCompiler
     internal class NumberLiteralToken : Token
     {
         public int Val;
-        public NumberLiteralToken(int val) : base(TokenType.NumLiteral)
+        public NumberLiteralToken(int val) : base(TokenType.NumberLiteral)
         {
             Val = val;
         }
@@ -27,7 +27,7 @@ namespace GloryCompiler
     internal class StringLiteralToken : Token
     {
         public string Val;
-        public StringLiteralToken(string val) : base(TokenType.String)
+        public StringLiteralToken(string val) : base(TokenType.StringLiteral)
         {
             Val = val;
         }
@@ -69,8 +69,8 @@ namespace GloryCompiler
         CloseCurly, //tick
 
         // Literals:
-        String, //tick
-        NumLiteral,
+        StringLiteral, //tick
+        NumberLiteral,
         Identifier,
 
         // Keywords:
