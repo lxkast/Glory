@@ -2,8 +2,8 @@
 statement      → variable | assignment | if | while | function ";"
 
 variable       → typename IDENTIFIER ("=" expression)?
-assignment     → (IDENTIFIER "=")? expression
-if             → "if" expression "{" statement* "}" ( "elif" condition "{" statement* "}" )* ( "else" "{" statement* "}" )?
+assignment     → IDENTIFIER "=" expression
+if             → "if" expression "{" statement* "}" ( "elif" expression "{" statement* "}" )* ( "else" "{" statement* "}" )?
 while          → "while" expression "{" statement* "}" 
 function       → typename IDENTIFIER "(" ( (typename identifier ",")* typename identifier )? ")" "{" statement* "}"
 
