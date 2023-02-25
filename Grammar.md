@@ -1,5 +1,6 @@
 ```
-statement      → (variable | assignment | if | while | function) ";"
+outerstatement → function | statement
+statement      → (variable ";" | assignment ";" | if | while | function)
 
 variable       → typename IDENTIFIER ("=" expression)?
 assignment     → IDENTIFIER "=" expression
