@@ -10,7 +10,7 @@ function       → typename IDENTIFIER "(" ( (typename identifier ",")* typename
 
 typename       → "string" | "int" | "float"
 
-expression     → assignment
+expression     → compare
 compare        → additive (( "==" | ">" | "<" | ">=" | "<=" ) additive)*
 additive       → division (("+" | "-") division)*
 divide         → multiply ("/" multiply)*
