@@ -171,8 +171,153 @@ namespace GloryCompiler
 
         public Node ParseExpression()
         {
-            _currentIndex++;
-            return new Node(NodeType.Null);
+            Node currentTree = ParseCompare();
+            return currentTree;
+        }
+        
+
+        public Node ParseCompare()
+        {
+            Node currentTree = ParseAdditive();
+            while (ReadToken().Type is TokenType.DoubleEquals or TokenType.GreaterThan or TokenType.GreaterThanEquals or TokenType.LessThan or TokenType.LessThanEquals)
+            {
+                switch (ReadToken().Type)
+                {
+                    case TokenType.DoubleEquals:
+                        _currentIndex++;
+                        currentTree = CreateDoubleEqualsNode(currentTree);
+                        break;
+                    case TokenType.GreaterThanEquals:
+                        _currentIndex++;
+                        currentTree = CreateGreaterThanEqualsNode(currentTree);
+                        break;
+                    case TokenType.GreaterThan:
+                        _currentIndex++;
+                        currentTree = CreateGreaterThanNode(currentTree);
+                        break;
+                    case TokenType.LessThan:
+                        _currentIndex++;
+                        currentTree = CreateLessThanNode(currentTree);
+                        break;
+                    case TokenType.LessThanEquals:
+                        _currentIndex++;
+                        currentTree = CreateLessThanEqualsNode(currentTree);
+                        break;
+                }
+            }
+            return currentTree;
+        }
+
+        public Node ParseAdditive()
+        {
+            Node currentTree = ParseDivide();
+            while (ReadToken().Type is TokenType.Plus or TokenType.Minus)
+            {
+                if (ReadToken().Type == TokenType.Plus)
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseDivide();
+                    currentTree = new NonLeafNode(NodeType.Plus, currentTree, nextTerm);
+                }
+                else
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseDivide();
+                    currentTree = new NonLeafNode(NodeType.Minus, currentTree, nextTerm);
+                }
+            }
+            return currentTree;
+        }
+
+        public Node ParseDivide()
+        {
+            Node currentTree = ParseMultiply();
+            while (ReadToken().Type == TokenType.Divide)
+            {
+                _currentIndex++;
+                Node nextTerm = ParseMultiply();
+                currentTree = new NonLeafNode(NodeType.Divide, currentTree, nextTerm);
+            }
+            return currentTree;
+        }
+
+        public Node ParseMultiply()
+        {
+            Node currentTree = ParseIndex();
+            while (ReadToken().Type == TokenType.Times)
+            {
+                _currentIndex++;
+                Node nextTerm = ParseIndex();
+                currentTree = new NonLeafNode(NodeType.Multiply, currentTree, nextTerm);
+            }
+            return currentTree;
+        }
+
+        public Node ParseIndex()
+        {
+            Node currentTree = ParseNegate();
+            while (ReadToken().Type == TokenType.Index)
+            {
+                _currentIndex++;
+                Node nextTerm = ParseNegate();
+                currentTree = new NonLeafNode(NodeType.Index, currentTree, nextTerm);
+            }
+            return currentTree;
+        }
+
+        public Node ParseNegate()
+        {
+            int negateCount = 0;
+            while (ReadToken().Type == TokenType.Minus)
+            {
+                negateCount++;
+                _currentIndex++;
+            }
+            Node currentTree = ParseUnary();
+            if (negateCount % 2 == 1)
+                currentTree = new NonLeafNode(NodeType.Multiply, currentTree, new IntNode(-1));
+            return currentTree;
+        }
+
+        public Node ParseUnary()
+        {
+            if (ReadToken().Type == TokenType.OpenBracket)
+            {
+                _currentIndex++;
+                Node newNode = ParseExpression();
+                if (ReadToken().Type == TokenType.CloseBracket)
+                {
+                    _currentIndex++;
+                    return newNode;
+                }
+                else
+                    throw new Exception("Expected closing bracket");
+            }
+            if (ReadToken().Type is TokenType.NumberLiteral)
+            {
+                int val = ((NumberLiteralToken)ReadToken()).Val;
+                _currentIndex++;
+                IntNode node = new IntNode(val);
+                return (Node)node;
+            }
+            else if (ReadToken().Type is TokenType.StringLiteral)
+            {
+                string val = ((StringLiteralToken)ReadToken()).Val;
+                _currentIndex++;
+                StringNode node = new StringNode(val);
+                return (Node)node;
+            }
+            else if (ReadToken().Type is TokenType.Identifier)
+            {
+                string val = ((IdentifierLiteralToken)ReadToken()).Val;
+                _currentIndex++;
+                VariableNode node = new VariableNode(FindIdentifier(val));
+                return (Node)node;
+            }
+            else
+            {
+                throw new Exception("Syntax Error");
+            }
         }
 
         public Variable FindIdentifier(string name)
@@ -185,6 +330,35 @@ namespace GloryCompiler
                 }
             }
             throw new Exception("Cannot find variable with name " + name);
+        }
+
+        public NonLeafNode CreateDoubleEqualsNode(Node currentTree)
+        {
+            Node nextTerm = ParseAdditive();
+            return new NonLeafNode(NodeType.DoubleEquals, currentTree, nextTerm);
+        }
+
+        public NonLeafNode CreateGreaterThanEqualsNode(Node currentTree)
+        {
+            Node nextTerm = ParseAdditive();
+            return new NonLeafNode(NodeType.GreaterThanEquals, currentTree, nextTerm);
+        }
+
+        public NonLeafNode CreateGreaterThanNode(Node currentTree)
+        {
+            Node nextTerm = ParseAdditive();
+            return new NonLeafNode(NodeType.GreaterThan, currentTree, nextTerm);
+        }
+
+        public NonLeafNode CreateLessThanNode(Node currentTree)
+        {
+            Node nextTerm = ParseAdditive();
+            return new NonLeafNode(NodeType.LessThan, currentTree, nextTerm);
+        }
+        public NonLeafNode CreateLessThanEqualsNode(Node currentTree)
+        {
+            Node nextTerm = ParseAdditive();
+            return new NonLeafNode(NodeType.LessThanEquals, currentTree, nextTerm);
         }
     }
 }

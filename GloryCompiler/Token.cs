@@ -43,6 +43,7 @@ namespace GloryCompiler
         DoubleEquals, //tick
         GreaterThan, //tick
         GreaterThanEquals, //tick
+        Index, //tick
 
         // Types:
         IntType, //tick

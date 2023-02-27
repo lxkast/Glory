@@ -38,6 +38,26 @@ namespace GloryCompiler
         }
     }
 
+    internal class StringNode : Node
+    {
+        public string _string;
+
+        public StringNode(string String) : base(NodeType.StringLiteral)
+        {
+            _string = String;
+        }
+    }
+
+    internal class IntNode : Node
+    {
+        public int _int;
+
+        public IntNode(int Int) : base(NodeType.NumberLiteral)
+        {
+            _int = Int;
+        }
+    }
+
     public enum NodeType
     {
         OuterStatement,
@@ -50,13 +70,23 @@ namespace GloryCompiler
         Typename,
         Expression,
         Compare,
-        Additive,
+        Plus,
+        Minus,
         Divide,
         Multiply,
         Index,
         Negate,
         Call,
         Unary,
+        StringLiteral,
+        NumberLiteral,
+
+        DoubleEquals,
+        GreaterThan,
+        GreaterThanEquals,
+        LessThan,
+        LessThanEquals,
+
         Null
     }
 }

@@ -38,6 +38,9 @@ namespace GloryCompiler
                     case '/':
                         AddToken(new Token(TokenType.Divide));
                         break;
+                    case '^':
+                        AddToken(new Token(TokenType.Index));
+                        break;
                     case ';':
                         AddToken(new Token(TokenType.Semicolon));
                         break;

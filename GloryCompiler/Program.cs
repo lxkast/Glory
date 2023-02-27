@@ -5,7 +5,7 @@ Console.WriteLine("Hello, World!");
 Lexer lexer = new Lexer(@"
 while a
 {
-    int a = 12;
+    int a = 1;
     string b = ""cool string"";
 }
 ");

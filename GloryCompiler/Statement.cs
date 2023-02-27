@@ -17,7 +17,6 @@ namespace GloryCompiler
         public SingleLineStatement(Node expression)
         {
             _expression = expression;
-
         }
     }
 
