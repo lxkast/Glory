@@ -66,6 +66,10 @@ namespace GloryCompiler
         // Keywords:
         If, //tick
         ElseIf, //tick
-        Else //tick
+        Else, //tick
+        While, //tick
+
+        // Null:
+        Null
     }
 }

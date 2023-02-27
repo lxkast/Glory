@@ -119,7 +119,7 @@ namespace GloryCompiler
                     case 'f':
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'o' && PeekAhead(3) == 'a' && PeekAhead(4) == 't' && char.IsWhiteSpace(PeekAhead(5)))
                         {
-                            AddToken(new Token(TokenType.IntType));
+                            AddToken(new Token(TokenType.FloatType));
                             _currentPos += 6;
                         }
                         else
@@ -141,12 +141,26 @@ namespace GloryCompiler
                     case 's':
                         if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && char.IsWhiteSpace(PeekAhead(6)))
                         {
-                            AddToken(new Token(TokenType.IntType));
+                            AddToken(new Token(TokenType.StringType));
                             _currentPos += 6;
                         }
                         else
                             ReadIdentifier();
-
+                        break;
+                    case 'w':
+                        if (PeekAhead(1) == 'h' && PeekAhead(2) == 'i' && PeekAhead(3) == 'l' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
+                        {
+                            AddToken(new Token(TokenType.While));
+                            _currentPos += 5;
+                        }
+                        else
+                            ReadIdentifier();
+                        break;
+                    case '#':
+                        while (GetCurrentChar() != '\n')
+                        {
+                            _currentPos += 1;
+                        }
                         break;
                     default:
                         if (char.IsDigit(currentChar))
@@ -169,6 +183,7 @@ namespace GloryCompiler
                 newNumLiteral += GetCurrentChar();
                 _currentPos++;
             }
+            _currentPos--;
             AddToken(new NumberLiteralToken(int.Parse(newNumLiteral)));
         }
 
