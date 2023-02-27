@@ -1,6 +1,6 @@
 ```
 outerstatement → function | statement
-statement      → (variable ";" | assignment ";" | if | while | function)
+statement      → (variable ";" | assignment ";" | if | while | call)
 
 variable       → typename IDENTIFIER ("=" expression)?
 assignment     → IDENTIFIER "=" expression
@@ -13,10 +13,10 @@ typename       → "string" | "int" | "float"
 expression     → assignment
 compare        → additive (( "==" | ">" | "<" | ">=" | "<=" ) additive)*
 additive       → division (("+" | "-") division)*
-divide         → term ("/" term)*
+divide         → multiply ("/" multiply)*
 multiply       → index ("*" index)*
-index          → unary ("^" unary)*
-negate         → "-"* unary
-call           → IDENTIFIER "(" ( ( expression ",")* expression )? ")"
+index          → negate ("^" negate)*
+negate         → "-"* call
+call           → IDENTIFIER "(" ( ( expression ",")* expression )? ")" | unary
 unary          → STRING_LITERAL | NUM_LITERAL | IDENTIFIER | "(" expression ")"
 ```
