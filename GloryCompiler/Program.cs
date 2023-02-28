@@ -7,7 +7,12 @@ int a = 123;
 int b = 12412;
 while a < b
 {
-
+    int c;
+    while a < 12
+    {
+        int d = c;
+    }
+    d = 12;
 }
 
 ");

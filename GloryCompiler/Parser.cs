@@ -12,6 +12,7 @@ namespace GloryCompiler
         public List<Token> _TokenList;
         public List<Statement> _GlobalStatements;
         public List<Variable> _GlobalVariables;
+        List<Variable> _currentVariables;
         public WhileStatement _currentLoop;
 
         public Parser(List<Token> list)
@@ -20,6 +21,7 @@ namespace GloryCompiler
             _currentIndex = 0;
             _GlobalStatements = new List<Statement>();
             _GlobalVariables = new List<Variable>();
+            _currentVariables = new List<Variable>();
             ParseOuterStatements();
         }
 
@@ -43,7 +45,12 @@ namespace GloryCompiler
 
         private void AddVariableToList(Variable variable)
         {
-            _GlobalVariables.Add(variable);
+            if (_currentLoop == null)
+                _GlobalVariables.Add(variable);
+            else
+                _currentLoop._vars.Add(variable);
+
+            _currentVariables.Add(variable);
         }
 
         public bool ParseOuterStatement()
@@ -155,12 +162,21 @@ namespace GloryCompiler
                 if (ReadToken().Type == TokenType.OpenCurly)
                 {
                     _currentIndex++;
+
+                    WhileStatement currentLoopBefore = _currentLoop;
                     _currentLoop = new WhileStatement();
+                    
                     ParseStatements();
+
                     WhileStatement loop = _currentLoop;
                     loop._condition = condition;
-                    _currentLoop = null;
+
+                    for (int i = 0; i < _currentLoop._vars.Count; i++)
+                        _currentVariables.RemoveAt(_currentVariables.Count - i - 1);
+
+                    _currentLoop = currentLoopBefore;
                     AddStatementToList(loop);
+
                     if (ReadToken().Type == TokenType.CloseCurly)
                     {
                         _currentIndex++;
@@ -358,11 +374,11 @@ namespace GloryCompiler
 
         public Variable FindIdentifier(string name)
         {
-            for (int i = 0; i < _GlobalVariables.Count();i++)
+            for (int i = 0; i < _currentVariables.Count();i++)
             {
-                if (_GlobalVariables[i]._name == name)
+                if (_currentVariables[i]._name == name)
                 {
-                    return _GlobalVariables[i];
+                    return _currentVariables[i];
                 }
             }
             throw new Exception("Cannot find variable with name " + name);

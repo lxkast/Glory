@@ -24,10 +24,12 @@ namespace GloryCompiler
     {
         public Node _condition;
         public List<Statement> _code;
+        public List<Variable> _vars;
 
         public WhileStatement()
         {
             _code = new List<Statement>();
+            _vars = new List<Variable>();
         }
     }
 
@@ -35,6 +37,9 @@ namespace GloryCompiler
     {
         public Node _condition;
         public List<Statement> _if;
+        public List<Variable> _vars;
+
+        // Give the else its own variables as well??
         public List<Statement> _else;
     }
 }
