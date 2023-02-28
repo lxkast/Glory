@@ -108,13 +108,16 @@ namespace GloryCompiler
                             ReadIdentifier();
                         break;
                     case 'e':
-                        if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 'i' && PeekAhead(4) == 'f' && char.IsWhiteSpace(PeekAhead(5)))
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'i' && PeekAhead(3) == 'f' && char.IsWhiteSpace(PeekAhead(4)))
                         {
                             AddToken(new Token(TokenType.ElseIf));
-                            _currentPos += 5;
+                            _currentPos += 4;
                         }
-                        else if (PeekAhead(1) == 'e' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
+                        else if (PeekAhead(1) == 'l' && PeekAhead(2) == 's' && PeekAhead(3) == 'e' && char.IsWhiteSpace(PeekAhead(4)))
+                        {
                             AddToken(new Token(TokenType.Else));
+                            _currentPos += 4;
+                        }
                         else
                             ReadIdentifier();
 
@@ -141,7 +144,10 @@ namespace GloryCompiler
                             _currentPos += 3;
                         }
                         else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
+                        {
+                            _currentPos += 2;
                             AddToken(new Token(TokenType.If));
+                        }
                         else
                             ReadIdentifier();
 

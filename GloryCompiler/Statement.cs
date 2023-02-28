@@ -20,26 +20,28 @@ namespace GloryCompiler
         }
     }
 
-    internal class WhileStatement : Statement
+    internal class BlockStatement : Statement
     {
-        public Node Condition;
         public List<Statement> Code;
         public List<Variable> Vars;
 
-        public WhileStatement()
+        public BlockStatement()
         {
             Code = new List<Statement>();
             Vars = new List<Variable>();
         }
     }
 
-    internal class IfStatement : Statement
+    internal class WhileStatement : BlockStatement
     {
         public Node Condition;
-        public List<Statement> If;
-        public List<Variable> Vars;
-
-        // Give the else its own variables as well??
-        public List<Statement> Else;
     }
+
+    internal class IfStatement : BlockStatement
+    {
+        public Node Condition;
+        public ElseStatement Else;
+    }
+
+    internal class ElseStatement : BlockStatement { }
 }

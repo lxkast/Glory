@@ -4,14 +4,18 @@ Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
 int a = 123;
-int b = 12412;
-while a < b
+int b = 123;
+if a == b
 {
-    int c;
-    while a < 12
-    {
-        int d = c;
-    }
+    int c = 35;
+}
+elif b == b
+{
+
+}
+else
+{
+
 }
 
 ");
