@@ -71,7 +71,7 @@ namespace GloryCompiler
 
         public bool ParseStatement()
         {
-            if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.FloatType)
+            if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.FloatType or TokenType.BoolType)
             {
                 ParseVariable();
                 if (ReadToken().Type == TokenType.Semicolon)
@@ -90,6 +90,10 @@ namespace GloryCompiler
             else if (ReadToken().Type == TokenType.While)
             {
                 ParseWhile();
+            }
+            else if (ReadToken().Type == TokenType.If)
+            {
+                ParseIf();
             }
             else
             {
@@ -114,6 +118,7 @@ namespace GloryCompiler
                     _currentIndex++;
                     Node expression = ParseExpression();
                     Node equals = new NonLeafNode(NodeType.Assignment,node,expression);
+                    VerifyType(equals);
                     SingleLineStatement statement = new SingleLineStatement(equals);
                     AddStatementToList(statement);
                 }
@@ -131,6 +136,7 @@ namespace GloryCompiler
                 Node expression = ParseExpression();
                 VariableNode varNode = new VariableNode(variable);
                 Node equals = new NonLeafNode(NodeType.Assignment, varNode, expression);
+                VerifyType(equals);
                 SingleLineStatement statement = new SingleLineStatement(equals);
                 AddStatementToList(statement);
             }
@@ -144,24 +150,47 @@ namespace GloryCompiler
         {
             _currentIndex++;
             Node condition = ParseExpression();
-            if (ReadToken().Type == TokenType.OpenCurly)
+            if (VerifyType(condition) == NodeType.BoolLiteral)
             {
-                _currentIndex++;
-                _currentLoop = new WhileStatement();
-                ParseStatements();
-                WhileStatement loop = _currentLoop;
-                _currentLoop = null;
-                AddStatementToList(loop);
-                if (ReadToken().Type == TokenType.CloseCurly)
+                if (ReadToken().Type == TokenType.OpenCurly)
                 {
                     _currentIndex++;
-                    return;
+                    _currentLoop = new WhileStatement();
+                    ParseStatements();
+                    WhileStatement loop = _currentLoop;
+                    loop._condition = condition;
+                    _currentLoop = null;
+                    AddStatementToList(loop);
+                    if (ReadToken().Type == TokenType.CloseCurly)
+                    {
+                        _currentIndex++;
+                        return;
+                    }
+                    else
+                    {
+                        throw new Exception("Expected }");
+                    }
+
                 }
                 else
                 {
-                    throw new Exception("Expected }");
+                    throw new Exception("Expected {");
                 }
+            }
+            else
+            {
+                throw new Exception("Invalid condition");
+            }
+            
+        }
 
+        public void ParseIf()
+        {
+            _currentIndex++;
+            Node condition = ParseExpression();
+            if (ReadToken().Type == TokenType.OpenCurly)
+            {
+                _currentIndex++;
             }
             else
             {
@@ -307,6 +336,13 @@ namespace GloryCompiler
                 StringNode node = new StringNode(val);
                 return (Node)node;
             }
+            else if (ReadToken().Type is TokenType.BoolLiteral)
+            {
+                bool val = ((BoolLiteralToken)ReadToken()).Val;
+                _currentIndex++;
+                BoolNode node = new BoolNode(val);
+                return (Node)node;
+            }
             else if (ReadToken().Type is TokenType.Identifier)
             {
                 string val = ((IdentifierLiteralToken)ReadToken()).Val;
@@ -359,6 +395,73 @@ namespace GloryCompiler
         {
             Node nextTerm = ParseAdditive();
             return new NonLeafNode(NodeType.LessThanEquals, currentTree, nextTerm);
+        }
+
+        public NodeType VerifyType(Node node)
+        {
+            if (node._nodeType is NodeType.Null or NodeType.NumberLiteral or NodeType.StringLiteral or NodeType.BoolLiteral or NodeType.Typename)
+            {
+                return node._nodeType;
+            }
+            else if (node._nodeType == NodeType.Variable)
+            {
+                if (((VariableNode)node)._variable._type == TokenType.IntType)
+                {
+                    return NodeType.NumberLiteral;
+                }
+                else if (((VariableNode)node)._variable._type == TokenType.StringType)
+                {
+                    return NodeType.StringLiteral;
+                }
+                else if (((VariableNode)node)._variable._type == TokenType.BoolType)
+                {
+                    return NodeType.BoolLiteral;
+                }
+                else
+                {
+                    throw new Exception("Unknown variable type");
+                }
+            }
+            else if (node._nodeType is NodeType.DoubleEquals)
+            {
+                NodeType leftPtrType = VerifyType(((NonLeafNode)node)._leftPtr);
+                NodeType rightPtrType = VerifyType(((NonLeafNode)node)._rightPtr);
+                if (leftPtrType == rightPtrType)
+                {
+                    return NodeType.BoolLiteral;
+                }
+                else
+                {
+                    throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
+                }
+            }
+            else if (node._nodeType is NodeType.GreaterThan or NodeType.GreaterThanEquals or NodeType.LessThan or NodeType.LessThanEquals)
+            {
+                NodeType leftPtrType = VerifyType(((NonLeafNode)node)._leftPtr);
+                NodeType rightPtrType = VerifyType(((NonLeafNode)node)._rightPtr);
+                if (leftPtrType == rightPtrType && leftPtrType == NodeType.NumberLiteral)
+                {
+                    return NodeType.BoolLiteral;
+                }
+                else
+                {
+                    throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
+                }
+            }
+            else
+            {
+                NodeType leftPtrType = VerifyType(((NonLeafNode)node)._leftPtr);
+                NodeType rightPtrType = VerifyType(((NonLeafNode)node)._rightPtr);
+                if (leftPtrType == rightPtrType)
+                {
+                    return leftPtrType;
+                }
+                else
+                {
+                    throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
+                }
+            }
+           
         }
     }
 }

@@ -30,6 +30,12 @@ namespace GloryCompiler
         public IdentifierLiteralToken(string val) : base(TokenType.Identifier) => Val = val;
     }
 
+    internal class BoolLiteralToken : Token
+    {
+        public bool Val;
+        public BoolLiteralToken(bool val) : base(TokenType.BoolLiteral) => Val = val;
+    }
+
     public enum TokenType
     {
         // Operators:
@@ -49,7 +55,7 @@ namespace GloryCompiler
         IntType, //tick
         StringType, //tick
         FloatType, //tick
-        Bool, //tick
+        BoolType, //tick
         Blank, //tick
 
         // General Structure:
@@ -63,6 +69,8 @@ namespace GloryCompiler
         StringLiteral, //tick
         NumberLiteral, //tick
         Identifier, //tick
+
+        BoolLiteral,
 
         // Keywords:
         If, //tick

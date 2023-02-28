@@ -101,7 +101,7 @@ namespace GloryCompiler
                         }
                         else if (PeekAhead(1) == 'o' && PeekAhead(2) == 'o' && PeekAhead(3) == 'l' && char.IsWhiteSpace(PeekAhead(4)))
                         {
-                            AddToken(new Token(TokenType.Bool));
+                            AddToken(new Token(TokenType.BoolType));
                             _currentPos += 4;
                         }
                         else
@@ -124,6 +124,11 @@ namespace GloryCompiler
                         {
                             AddToken(new Token(TokenType.FloatType));
                             _currentPos += 6;
+                        }
+                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e')
+                        {
+                            AddToken(new BoolLiteralToken(false));
+                            _currentPos += 4;
                         }
                         else
                             ReadIdentifier();
@@ -149,6 +154,13 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+                        break;
+                    case 't':
+                        if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e')
+                        {
+                            AddToken(new BoolLiteralToken(true));
+                            _currentPos += 3;
+                        }
                         break;
                     case 'w':
                         if (PeekAhead(1) == 'h' && PeekAhead(2) == 'i' && PeekAhead(3) == 'l' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))

@@ -18,8 +18,8 @@ namespace GloryCompiler
 
     internal class NonLeafNode : Node
     {
-        Node _leftPtr;
-        Node _rightPtr;
+        public Node _leftPtr;
+        public Node _rightPtr;
 
         public NonLeafNode(NodeType type, Node leftPtr, Node rightPtr) : base(type)
         {
@@ -58,6 +58,16 @@ namespace GloryCompiler
         }
     }
 
+    internal class BoolNode : Node
+    {
+        public bool _bool;
+
+        public BoolNode(bool Bool) : base(NodeType.BoolLiteral)
+        {
+            _bool = Bool;
+        }
+    }
+
     public enum NodeType
     {
         OuterStatement,
@@ -80,6 +90,7 @@ namespace GloryCompiler
         Unary,
         StringLiteral,
         NumberLiteral,
+        BoolLiteral,
 
         DoubleEquals,
         GreaterThan,

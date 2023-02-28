@@ -3,11 +3,13 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-while a
+int a = 123;
+int b = 12412;
+while a < b
 {
-    int a = 1;
-    string b = ""cool string"";
+
 }
+
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);
