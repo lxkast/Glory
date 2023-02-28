@@ -12,7 +12,6 @@ while a < b
     {
         int d = c;
     }
-    d = 12;
 }
 
 ");

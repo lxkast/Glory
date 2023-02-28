@@ -8,64 +8,52 @@ namespace GloryCompiler
 {
     internal class Node
     {
-        public NodeType _nodeType;
+        public NodeType NodeType;
         
         public Node(NodeType nodeType)
         {
-            _nodeType = nodeType;
+            NodeType = nodeType;
         }
     }
 
     internal class NonLeafNode : Node
     {
-        public Node _leftPtr;
-        public Node _rightPtr;
+        public Node LeftPtr;
+        public Node RightPtr;
 
         public NonLeafNode(NodeType type, Node leftPtr, Node rightPtr) : base(type)
         {
-            _leftPtr = leftPtr;
-            _rightPtr = rightPtr;
+            LeftPtr = leftPtr;
+            RightPtr = rightPtr;
         }
     }
 
     internal class VariableNode : Node
     {
-        public Variable _variable;
+        public Variable Variable;
 
-        public VariableNode(Variable variable) : base(NodeType.Variable)
-        {
-            _variable = variable;
-        }
+        public VariableNode(Variable variable) : base(NodeType.Variable) => Variable = variable;
     }
 
     internal class StringNode : Node
     {
-        public string _string;
+        public string String;
 
-        public StringNode(string String) : base(NodeType.StringLiteral)
-        {
-            _string = String;
-        }
+        public StringNode(string str) : base(NodeType.StringLiteral) => String = str;
     }
 
     internal class IntNode : Node
     {
         public int _int;
 
-        public IntNode(int Int) : base(NodeType.NumberLiteral)
-        {
-            _int = Int;
-        }
+        public IntNode(int Int) : base(NodeType.NumberLiteral) => _int = Int;
     }
 
     internal class BoolNode : Node
     {
         public bool _bool;
 
-        public BoolNode(bool Bool) : base(NodeType.BoolLiteral)
-        {
-            _bool = Bool;
-        }
+        public BoolNode(bool Bool) : base(NodeType.BoolLiteral) => _bool = Bool;
     }
 
     public enum NodeType
@@ -77,7 +65,6 @@ namespace GloryCompiler
         If,
         While,
         Function,
-        Typename,
         Expression,
         Compare,
         Plus,
