@@ -166,6 +166,48 @@ namespace GloryCompiler
                 SingleLineStatement statement = new SingleLineStatement(equals);
                 AddStatementToList(statement);
             }
+            else if (ReadToken().Type is TokenType.Plus or TokenType.Minus or TokenType.Times or TokenType.Divide)
+            {
+                Token operationToken = ReadToken();
+                NodeType operationNodeType = NodeType.Null;
+                switch (operationToken.Type)
+                {
+                    case TokenType.Plus:
+                        operationNodeType = NodeType.Plus;
+                        break;
+                    case TokenType.Minus:
+                        operationNodeType = NodeType.Minus;
+                        break;
+                    case TokenType.Times:
+                        operationNodeType = NodeType.Multiply;
+                        break;
+                    case TokenType.Divide:
+                        operationNodeType = NodeType.Divide;
+                        break;
+                }
+                _currentIndex++;
+                if (ReadToken().Type == TokenType.Equals)
+                {
+                    _currentIndex++;
+                    // Get the variable
+                    Variable variable = FindIdentifier(val);
+                    VariableNode varNode = new VariableNode(variable);
+
+                    // Parse the right and create the node
+                    Node right = ParseExpression();
+                    Node operation = new NonLeafNode(operationNodeType, varNode, right);
+                    Node equals = new NonLeafNode(NodeType.Assignment, varNode, operation);
+                    VerifyAndGetTypeOf(equals);
+
+                    // Create the statement
+                    SingleLineStatement statement = new SingleLineStatement(equals);
+                    AddStatementToList(statement);
+                }
+                else
+                {
+                    throw new Exception("Expected equals");
+                }
+            }
             else
             {
                 throw new Exception("Expected equals");
@@ -312,13 +354,19 @@ namespace GloryCompiler
 
             while (ReadToken().Type is TokenType.Plus or TokenType.Minus)
             {
-                _currentIndex++;
-                Node nextTerm = ParseDivide();
-
                 if (ReadToken().Type == TokenType.Plus)
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseDivide();
                     currentTree = new NonLeafNode(NodeType.Plus, currentTree, nextTerm);
+
+                }
                 else
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseDivide();  
                     currentTree = new NonLeafNode(NodeType.Minus, currentTree, nextTerm);
+                }
             }
 
             return currentTree;
