@@ -12,34 +12,36 @@ namespace GloryCompiler
     }
     internal class SingleLineStatement : Statement
     {
-        public Node _expression;
+        public Node Expression;
 
         public SingleLineStatement(Node expression)
         {
-            _expression = expression;
+            Expression = expression;
         }
     }
 
-    internal class WhileStatement : Statement
+    internal class BlockStatement : Statement
     {
-        public Node _condition;
-        public List<Statement> _code;
-        public List<Variable> _vars;
+        public List<Statement> Code;
+        public List<Variable> Vars;
 
-        public WhileStatement()
+        public BlockStatement()
         {
-            _code = new List<Statement>();
-            _vars = new List<Variable>();
+            Code = new List<Statement>();
+            Vars = new List<Variable>();
         }
     }
 
-    internal class IfStatement : Statement
+    internal class WhileStatement : BlockStatement
     {
-        public Node _condition;
-        public List<Statement> _if;
-        public List<Variable> _vars;
-
-        // Give the else its own variables as well??
-        public List<Statement> _else;
+        public Node Condition;
     }
+
+    internal class IfStatement : BlockStatement
+    {
+        public Node Condition;
+        public ElseStatement Else;
+    }
+
+    internal class ElseStatement : BlockStatement { }
 }
