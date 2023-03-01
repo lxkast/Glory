@@ -128,10 +128,16 @@ namespace GloryCompiler
                             AddToken(new Token(TokenType.FloatType));
                             _currentPos += 6;
                         }
-                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e')
+                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
                         {
                             AddToken(new BoolLiteralToken(false));
-                            _currentPos += 4;
+                            _currentPos += 5;
+                        }
+                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && PeekAhead(5) == ';')
+                        {
+                            AddToken(new BoolLiteralToken(false));
+                            AddToken(new Token(TokenType.Semicolon));
+                            _currentPos += 5;
                         }
                         else
                             ReadIdentifier();
@@ -162,10 +168,16 @@ namespace GloryCompiler
                             ReadIdentifier();
                         break;
                     case 't':
-                        if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e')
+                        if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && char.IsWhiteSpace(PeekAhead(4)))
                         {
                             AddToken(new BoolLiteralToken(true));
-                            _currentPos += 3;
+                            _currentPos += 4;
+                        }
+                        else if(PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && PeekAhead(4) == ';')
+                        {
+                            AddToken(new BoolLiteralToken(true));
+                            AddToken(new Token(TokenType.Semicolon));
+                            _currentPos += 4;
                         }
                         break;
                     case 'w':

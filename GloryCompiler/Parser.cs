@@ -89,7 +89,11 @@ namespace GloryCompiler
 
             // Assignments (a = ...)
             else if (ReadToken().Type == TokenType.Identifier)
+            {
                 ParseAssignment();
+                if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
+                _currentIndex++;
+            }
 
             // While (while ...)
             else if (ReadToken().Type == TokenType.While)
@@ -139,11 +143,12 @@ namespace GloryCompiler
 
         public void ParseAssignment()
         {
+            string val = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex++;
 
             if (ReadToken().Type == TokenType.Equals)
             {
-                string val = ((IdentifierLiteralToken)ReadToken()).Val;
+                
                 _currentIndex++;
 
                 // Get the variable
