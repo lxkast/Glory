@@ -1,12 +1,13 @@
 ```
 outerstatement → function | statement
-statement      → (variable ";" | assignment ";" | if | while | call)
+statement      → (variable ";" | assignment ";" | if | while | call | return ";")
 
 variable       → typename IDENTIFIER ("=" expression)?
 assignment     → IDENTIFIER "=" expression
 if             → "if" expression "{" statement* "}" ( "elif" expression "{" statement* "}" )* ( "else" "{" statement* "}" )?
 while          → "while" expression "{" statement* "}" 
 function       → (typename | "blank") IDENTIFIER "(" ( (typename identifier ",")* typename identifier )? ")" "{" statement* "}"
+return         → "return" expression
 
 typename       → "string" | "int" | "float"
 
