@@ -44,6 +44,9 @@ namespace GloryCompiler
                     case ';':
                         AddToken(new Token(TokenType.Semicolon));
                         break;
+                    case ',':
+                        AddToken(new Token(TokenType.Comma));
+                        break;
                     case '(':
                         AddToken(new Token(TokenType.OpenBracket));
                         break;
@@ -156,7 +159,15 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
-
+                        break;
+                    case 'r':
+                        if (PeekAhead(1) == 'e' && PeekAhead(2) == 't' && PeekAhead(3) == 'u' && PeekAhead(4) == 'r' && PeekAhead(5) == 'n' && char.IsWhiteSpace(PeekAhead(6)))
+                        {
+                            AddToken(new Token(TokenType.Return));
+                            _currentPos += 6;
+                        }
+                        else
+                            ReadIdentifier();
                         break;
                     case 's':
                         if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && char.IsWhiteSpace(PeekAhead(6)))

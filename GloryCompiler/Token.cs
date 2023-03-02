@@ -51,6 +51,9 @@ namespace GloryCompiler
         GreaterThanEquals, //tick
         Index, //tick
 
+
+        Comma,
+
         // Types:
         IntType, //tick
         StringType, //tick
@@ -77,6 +80,7 @@ namespace GloryCompiler
         ElseIf, //tick
         Else, //tick
         While, //tick
+        Return, //tick
 
         // Null:
         Null

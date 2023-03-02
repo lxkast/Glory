@@ -32,6 +32,7 @@ namespace GloryCompiler
         }
     }
 
+
     internal class WhileStatement : BlockStatement
     {
         public Node Condition;

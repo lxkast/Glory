@@ -12,6 +12,7 @@ namespace GloryCompiler
         List<Token> _tokens;
         public List<Statement> GlobalStatements;
         public List<Variable> GlobalVariables;
+        public List<Function> _GlobalFunctions;
         List<Variable> _currentVariables;
 
         BlockStatement _currentBlock;
@@ -23,6 +24,7 @@ namespace GloryCompiler
             GlobalStatements = new List<Statement>();
             GlobalVariables = new List<Variable>();
             _currentVariables = new List<Variable>();
+            _GlobalFunctions = new List<Function>();
             ParseOuterStatements();
         }
 
@@ -30,6 +32,14 @@ namespace GloryCompiler
         {
             if (_currentIndex < _tokens.Count)
                 return _tokens[_currentIndex];
+            else
+                return new Token(TokenType.Null);
+        }
+
+        private Token PeekToken(int amount)
+        {
+            if (_currentIndex + amount < _tokens.Count)
+                return _tokens[_currentIndex + amount];
             else
                 return new Token(TokenType.Null);
         }
@@ -56,6 +66,17 @@ namespace GloryCompiler
 
         public bool ParseOuterStatement()
         {
+            if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.BoolType or TokenType.Blank)
+            {
+                if (PeekToken(1).Type == TokenType.Identifier)
+                {
+                    if (PeekToken(2).Type == TokenType.OpenBracket)
+                    {
+                        ParseFunction();
+                        return true;
+                    }
+                }
+            }
             return ParseStatement();
         }
 
@@ -107,6 +128,67 @@ namespace GloryCompiler
                 return false; // Return false if we had no idea what to do with this
 
             return true; // Return true if we were happy with what we parsed
+        }
+
+        public void ParseFunction()
+        {
+            TokenType type = ReadToken().Type;
+            _currentIndex++;
+
+            string name = ((IdentifierLiteralToken)ReadToken()).Val;
+            _currentIndex+=2;
+            List<Variable> parameters = new List<Variable>();
+
+            while (ReadToken().Type != TokenType.CloseBracket)
+            {
+                if (ReadToken().Type is not TokenType.IntType and not TokenType.StringType and not TokenType.FloatType)
+                    throw new Exception("Expected type");
+
+                TokenType paramType = ReadToken().Type;
+                _currentIndex++;
+
+                if (ReadToken().Type == TokenType.Identifier)
+                {
+                    string paramName = ((IdentifierLiteralToken)ReadToken()).Val;
+                    _currentIndex++;
+                    parameters.Add(new Variable(paramType, paramName));
+
+                    if (ReadToken().Type == TokenType.CloseBracket) break;
+
+                    if (ReadToken().Type == TokenType.Comma)
+                        _currentIndex++;
+                    else
+                        throw new Exception("Expected comma");
+                }
+                else
+                {
+                    throw new Exception("Expected identifier");
+                }
+            }
+
+            _currentIndex++; // Eat the )
+            _currentVariables.AddRange(parameters);
+            Function func = new Function(parameters, name, type);
+            if (ReadToken().Type == TokenType.OpenCurly)
+            {
+                _currentIndex++;
+                BlockStatement previousBlock = EnterBlock(func);
+                ParseStatements();
+                ExitBlock(previousBlock);
+                if (ReadToken().Type == TokenType.CloseCurly)
+                {
+                    _currentIndex++;
+                    _GlobalFunctions.Add(func);
+                }
+                else
+                {
+                    throw new Exception("Expected }");
+                }
+            }
+            else
+            {
+                throw new Exception("Expected {");
+            }
         }
 
         public void ParseVariable()
