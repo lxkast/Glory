@@ -45,4 +45,13 @@ namespace GloryCompiler
     }
 
     internal class ElseStatement : BlockStatement { }
+
+    internal class ReturnStatement : Statement
+    {
+        public Node Expression;
+        public ReturnStatement(Node expression)
+        {
+            Expression = expression;
+        }
+    }
 }

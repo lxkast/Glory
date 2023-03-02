@@ -67,6 +67,7 @@ namespace GloryCompiler
         }
     }
 
+
     public enum NodeType
     {
         OuterStatement,

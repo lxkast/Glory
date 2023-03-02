@@ -14,6 +14,7 @@ namespace GloryCompiler
         public List<Variable> GlobalVariables;
         public List<Function> _GlobalFunctions;
         List<Variable> _currentVariables;
+        private Function _currentFunction;
 
         BlockStatement _currentBlock;
 
@@ -119,7 +120,7 @@ namespace GloryCompiler
                 }
                 else
                 {
-                ParseAssignment();
+                    ParseAssignment();
                 }
                 if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
                 _currentIndex++;
@@ -133,10 +134,39 @@ namespace GloryCompiler
             else if (ReadToken().Type == TokenType.If)
                 ParseIf();
 
+            else if (ReadToken().Type == TokenType.Return)
+            {
+                ParseReturn();
+                if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
+                _currentIndex++;
+            }
+
             else
                 return false; // Return false if we had no idea what to do with this
 
             return true; // Return true if we were happy with what we parsed
+        }
+
+        public void ParseReturn()
+        {
+            _currentIndex++;
+            Node returnExpression= ParseExpression();
+            if (_currentFunction == null) throw new Exception("Cannot return outside of a function");
+            if (_currentFunction._returnType == TokenType.Blank) throw new Exception("Cannot return outside of a function");
+            if (VerifyAndGetTypeOf(returnExpression) == _currentFunction._returnType switch {
+                TokenType.IntType => NodeType.NumberLiteral,
+                TokenType.StringType => NodeType.StringLiteral,
+                TokenType.BoolType => NodeType.BoolLiteral,
+                _ => throw new Exception("Invalid token type")
+            })
+            {
+                ReturnStatement statement = new ReturnStatement(returnExpression);
+                AddStatementToList(statement);
+            }
+            else
+            {
+                throw new Exception("Incorrect return type");
+            }
         }
 
         public void ParseFunction()
@@ -182,9 +212,11 @@ namespace GloryCompiler
             {
                 _currentIndex++;
                 _GlobalFunctions.Add(func);
+                _currentFunction = func;
                 BlockStatement previousBlock = EnterBlock(func);
                 ParseStatements();
                 ExitBlock(previousBlock);
+                _currentFunction = null;
                 if (ReadToken().Type == TokenType.CloseCurly)
                 {
                     _currentIndex++;
@@ -198,6 +230,8 @@ namespace GloryCompiler
             {
                 throw new Exception("Expected {");
             }
+            if (!VerifyReturn(func.Code))
+                throw new Exception("Not all code paths return a value");
         }
 
         public void ParseVariable()
@@ -714,6 +748,30 @@ namespace GloryCompiler
             }
             else
                 throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
+        }
+
+        public bool VerifyReturn(List<Statement> statements)
+        {
+            foreach (Statement statement in statements)
+            {
+                if (statement is ReturnStatement)
+                {
+                    return true;
+                }
+                else
+                {
+                    if (statement is IfStatement ifStatement)
+                    {
+                        bool isMainBlock = VerifyReturn(ifStatement.Code);
+                        if (ifStatement.Else != null)
+                        {
+                            bool isElse = VerifyReturn(ifStatement.Else.Code);
+                            if (isMainBlock && isElse) return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         private BlockStatement EnterBlock(BlockStatement newLoop)
