@@ -6,7 +6,7 @@ variable       → typename IDENTIFIER ("=" expression)?
 assignment     → IDENTIFIER "=" expression
 if             → "if" expression "{" statement* "}" ( "elif" expression "{" statement* "}" )* ( "else" "{" statement* "}" )?
 while          → "while" expression "{" statement* "}" 
-function       → typename IDENTIFIER "(" ( (typename identifier ",")* typename identifier )? ")" "{" statement* "}"
+function       → (typename | "blank") IDENTIFIER "(" ( (typename identifier ",")* typename identifier )? ")" "{" statement* "}"
 
 typename       → "string" | "int" | "float"
 
