@@ -111,7 +111,16 @@ namespace GloryCompiler
             // Assignments (a = ...)
             else if (ReadToken().Type == TokenType.Identifier)
             {
+                if (PeekToken(1).Type == TokenType.OpenBracket)
+                {
+                    Node node = ParseCall();
+                    SingleLineStatement call = new SingleLineStatement(node);
+                    AddStatementToList(call);
+                }
+                else
+                {
                 ParseAssignment();
+                }
                 if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
                 _currentIndex++;
             }
@@ -172,13 +181,13 @@ namespace GloryCompiler
             if (ReadToken().Type == TokenType.OpenCurly)
             {
                 _currentIndex++;
+                _GlobalFunctions.Add(func);
                 BlockStatement previousBlock = EnterBlock(func);
                 ParseStatements();
                 ExitBlock(previousBlock);
                 if (ReadToken().Type == TokenType.CloseCurly)
                 {
                     _currentIndex++;
-                    _GlobalFunctions.Add(func);
                 }
                 else
                 {
@@ -506,13 +515,61 @@ namespace GloryCompiler
                 _currentIndex++;
             }
 
-            Node currentTree = ParseUnary();
+            Node currentTree = ParseCall();
             if (negateCount % 2 == 1)
                 currentTree = new NonLeafNode(NodeType.Multiply, currentTree, new IntNode(-1));
 
             return currentTree;
         }
 
+        public Node ParseCall()
+        {
+            if(ReadToken().Type == TokenType.Identifier && PeekToken(1).Type == TokenType.OpenBracket)
+            {
+                string name = ((IdentifierLiteralToken)ReadToken()).Val;
+                Function func = FindFunction(name);
+                _currentIndex += 2;
+
+                List<Node> arguments = new List<Node>();
+                while (ReadToken().Type != TokenType.CloseBracket)
+                {
+                    arguments.Add(ParseExpression());
+                    
+                    if (ReadToken().Type == TokenType.CloseBracket) break;
+
+                    if (ReadToken().Type == TokenType.Comma)
+                        _currentIndex++;
+                    else
+                        throw new Exception("Expected comma");
+                }
+                _currentIndex++;
+                if (arguments.Count != func._parameters.Count) 
+                    throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
+
+                for (int i = 0; i < arguments.Count; i++)
+                {
+                    NodeType argumentType = VerifyAndGetTypeOf(arguments[i]);
+
+                    TokenType translatedArgumentType = argumentType switch
+                    {
+                        NodeType.NumberLiteral => TokenType.IntType,
+                        NodeType.BoolLiteral => TokenType.BoolType,
+                        NodeType.StringLiteral => TokenType.StringLiteral,
+                        _ => throw new Exception("Invalid type")
+                    };
+
+                    if (translatedArgumentType != func._parameters[i].Type) 
+                        throw new Exception("Call to " + name + "() has incorrect argument types.");
+                }
+
+                CallNode res = new CallNode(func, arguments);
+                return res;
+            }
+            else
+            {
+                return ParseUnary();
+            }
+        }
         public Node ParseUnary()
         {
             switch (ReadToken().Type)
@@ -568,6 +625,16 @@ namespace GloryCompiler
             throw new Exception("Cannot find variable with name " + name);
         }
 
+        private Function FindFunction(string name)
+        {
+            for (int i = 0; i < _GlobalFunctions.Count(); i++)
+            {
+                if (_GlobalFunctions[i]._name == name)
+                    return _GlobalFunctions[i];
+            }
+            throw new Exception("Cannot find function with name " + name);
+        }
+
         private NodeType VerifyAndGetTypeOf(Node node)
         {
             switch (node.NodeType)
@@ -594,6 +661,18 @@ namespace GloryCompiler
                 case NodeType.LessThan:
                 case NodeType.LessThanEquals:
                     return VerifyTypeOfIntComparisonOperators(node);
+                case NodeType.Call:
+                    CallNode newNode = (CallNode)node;
+                    return newNode._function._returnType switch
+                    {
+                        TokenType.IntType => NodeType.NumberLiteral,
+                        TokenType.StringType => NodeType.StringLiteral,
+                        TokenType.BoolType => NodeType.BoolLiteral,
+                        TokenType.Blank => throw new Exception("Cannot use return value of Blank function"),
+
+                        _ => throw new Exception("Unknown variable type")
+                    };
+                
 
                 default:
                     NonLeafNode nonLeafNode = (NonLeafNode)node;
@@ -648,7 +727,7 @@ namespace GloryCompiler
         {
             // Update our "current variables"
             for (int i = 0; i < _currentBlock.Vars.Count; i++)
-                _currentVariables.RemoveAt(_currentVariables.Count - i - 1);
+                _currentVariables.RemoveAt(_currentVariables.Count - 1);
 
             _currentBlock = previousBlock;
         }

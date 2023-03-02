@@ -56,6 +56,17 @@ namespace GloryCompiler
         public BoolNode(bool Bool) : base(NodeType.BoolLiteral) => _bool = Bool;
     }
 
+    internal class CallNode : Node
+    {
+        public Function _function;
+        public List<Node> _args;
+        public CallNode(Function function, List<Node> args) : base(NodeType.Call)
+        {
+            _function = function;
+            _args = args;
+        }
+    }
+
     public enum NodeType
     {
         OuterStatement,

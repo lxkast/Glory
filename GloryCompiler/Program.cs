@@ -3,23 +3,12 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-int outside;
-int main(int a, string b)
+int add(int a, int b)
 {
-    if a > 0
-    {
-        a = 12;
-    }
-    else
-    {
-        b = ""fail"";
-    }
+    int c = add(2,3);
 }
+add(2,3);
 
-blank NoReturn(int twelve)
-{
-    twelve = 12;
-}
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);
