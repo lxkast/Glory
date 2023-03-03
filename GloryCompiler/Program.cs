@@ -7,16 +7,9 @@ Lexer lexer = new Lexer(@"
 
 
 
-int add(int a, int b)
+blank add(int a, int b)
 {
-    if a > 0
-    {
-        return a;
-    }
-    else
-    {
-        a = 0;
-    }
+    int c = a+ b;
 }
 
 

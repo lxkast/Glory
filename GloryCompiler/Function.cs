@@ -8,16 +8,16 @@ namespace GloryCompiler
 {
     internal class Function : BlockStatement
     {
-        public string _name;
-        public TokenType _returnType;
-        public List<Variable> _parameters;
+        public string Name;
+        public GloryType ReturnType;
+        public List<Variable> Parameters;
 
-        public Function(List<Variable> parameters, string name, TokenType returnType)
+        public Function(List<Variable> parameters, string name, GloryType returnType)
         {
-            _parameters = parameters;
-            _returnType = returnType;
-            _name = name;
-            Vars.AddRange(_parameters);
+            Parameters = parameters;
+            ReturnType = returnType;
+            Name = name;
+            Vars.AddRange(Parameters);
         }
     }
 }

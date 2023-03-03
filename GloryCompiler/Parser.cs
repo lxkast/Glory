@@ -152,13 +152,8 @@ namespace GloryCompiler
             _currentIndex++;
             Node returnExpression= ParseExpression();
             if (_currentFunction == null) throw new Exception("Cannot return outside of a function");
-            if (_currentFunction._returnType == TokenType.Blank) throw new Exception("Cannot return outside of a function");
-            if (VerifyAndGetTypeOf(returnExpression) == _currentFunction._returnType switch {
-                TokenType.IntType => NodeType.NumberLiteral,
-                TokenType.StringType => NodeType.StringLiteral,
-                TokenType.BoolType => NodeType.BoolLiteral,
-                _ => throw new Exception("Invalid token type")
-            })
+            if (_currentFunction.ReturnType == null) throw new Exception("Cannot return from a blank function");
+            if (VerifyAndGetTypeOf(returnExpression) == _currentFunction.ReturnType)
             {
                 ReturnStatement statement = new ReturnStatement(returnExpression);
                 AddStatementToList(statement);
@@ -171,8 +166,15 @@ namespace GloryCompiler
 
         public void ParseFunction()
         {
-            TokenType type = ReadToken().Type;
-            _currentIndex++;
+
+            GloryType returnType;
+            if (ReadToken().Type == TokenType.Blank)
+            {
+                returnType = null;
+                _currentIndex++;
+            }
+            else
+                returnType = ParseType();
 
             string name = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex+=2;
@@ -183,8 +185,7 @@ namespace GloryCompiler
                 if (ReadToken().Type is not TokenType.IntType and not TokenType.StringType and not TokenType.FloatType)
                     throw new Exception("Expected type");
 
-                TokenType paramType = ReadToken().Type;
-                _currentIndex++;
+                GloryType paramType = ParseType();
 
                 if (ReadToken().Type == TokenType.Identifier)
                 {
@@ -207,7 +208,9 @@ namespace GloryCompiler
 
             _currentIndex++; // Eat the )
             _currentVariables.AddRange(parameters);
-            Function func = new Function(parameters, name, type);
+
+            Function func = new Function(parameters, name, returnType);
+
             if (ReadToken().Type == TokenType.OpenCurly)
             {
                 _currentIndex++;
@@ -230,14 +233,22 @@ namespace GloryCompiler
             {
                 throw new Exception("Expected {");
             }
-            if (!VerifyReturn(func.Code))
-                throw new Exception("Not all code paths return a value");
+            if (returnType != null)
+            {
+                if (!VerifyReturn(func.Code))
+                    throw new Exception("Not all code paths return a value");
+            }
         }
 
-        public void ParseVariable()
+        public GloryType ParseType()
         {
             TokenType type = ReadToken().Type;
             _currentIndex++;
+            return new GloryType(type);
+        }
+        public void ParseVariable()
+        {
+            GloryType type = ParseType();
 
             if (ReadToken().Type == TokenType.Identifier)
             {
@@ -345,7 +356,8 @@ namespace GloryCompiler
 
             // Parse the condition
             Node condition = ParseExpression();
-            if (VerifyAndGetTypeOf(condition) != NodeType.BoolLiteral) throw new Exception("Invalid condition");
+            if (VerifyAndGetTypeOf(condition).Type != GloryTypes.Bool)
+                throw new Exception("Expected expression of type 'bool' for while statement.");
 
             // Look for the {
             if (ReadToken().Type != TokenType.OpenCurly) throw new Exception("Expected {");
@@ -374,7 +386,8 @@ namespace GloryCompiler
 
             // Parse the condition
             Node condition = ParseExpression();
-            if (VerifyAndGetTypeOf(condition) != NodeType.BoolLiteral) throw new Exception("Expected expression of type 'bool' for if condition.");
+            if (VerifyAndGetTypeOf(condition).Type != GloryTypes.Bool) 
+                throw new Exception("Expected expression of type 'bool' for if condition.");
 
             // Look for the {
             if (ReadToken().Type != TokenType.OpenCurly) throw new Exception("Expected {");
@@ -577,22 +590,14 @@ namespace GloryCompiler
                         throw new Exception("Expected comma");
                 }
                 _currentIndex++;
-                if (arguments.Count != func._parameters.Count) 
+                if (arguments.Count != func.Parameters.Count) 
                     throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
 
                 for (int i = 0; i < arguments.Count; i++)
                 {
-                    NodeType argumentType = VerifyAndGetTypeOf(arguments[i]);
+                    GloryType argumentType = VerifyAndGetTypeOf(arguments[i]);
 
-                    TokenType translatedArgumentType = argumentType switch
-                    {
-                        NodeType.NumberLiteral => TokenType.IntType,
-                        NodeType.BoolLiteral => TokenType.BoolType,
-                        NodeType.StringLiteral => TokenType.StringLiteral,
-                        _ => throw new Exception("Invalid type")
-                    };
-
-                    if (translatedArgumentType != func._parameters[i].Type) 
+                    if (argumentType != func.Parameters[i].Type) 
                         throw new Exception("Call to " + name + "() has incorrect argument types.");
                 }
 
@@ -663,30 +668,32 @@ namespace GloryCompiler
         {
             for (int i = 0; i < _GlobalFunctions.Count(); i++)
             {
-                if (_GlobalFunctions[i]._name == name)
+                if (_GlobalFunctions[i].Name == name)
                     return _GlobalFunctions[i];
             }
             throw new Exception("Cannot find function with name " + name);
         }
 
-        private NodeType VerifyAndGetTypeOf(Node node)
+        private GloryType VerifyAndGetTypeOf(Node node)
         {
             switch (node.NodeType)
             {
                 case NodeType.Null:
+                    throw new Exception("Cannot verify type of null");
+
                 case NodeType.NumberLiteral:
                 case NodeType.StringLiteral:
                 case NodeType.BoolLiteral:
-                    return node.NodeType;
+                    return new GloryType(node.NodeType switch
+                    {
+                        NodeType.NumberLiteral => GloryTypes.Int,
+                        NodeType.StringLiteral => GloryTypes.String,
+                        NodeType.BoolLiteral => GloryTypes.Bool,
+                        _ => throw new Exception("Unrecognised type")
+                    });
 
                 case NodeType.Variable:
-                    return ((VariableNode)node).Variable.Type switch
-                    {
-                        TokenType.IntType => NodeType.NumberLiteral,
-                        TokenType.StringType => NodeType.StringLiteral,
-                        TokenType.BoolType => NodeType.BoolLiteral,
-                        _ => throw new Exception("Unknown variable type")
-                    };
+                    return ((VariableNode)node).Variable.Type;
                 case NodeType.DoubleEquals:
                     return VerifyTypeOfDoubleEquals(node);
 
@@ -697,57 +704,49 @@ namespace GloryCompiler
                     return VerifyTypeOfIntComparisonOperators(node);
                 case NodeType.Call:
                     CallNode newNode = (CallNode)node;
-                    return newNode._function._returnType switch
-                    {
-                        TokenType.IntType => NodeType.NumberLiteral,
-                        TokenType.StringType => NodeType.StringLiteral,
-                        TokenType.BoolType => NodeType.BoolLiteral,
-                        TokenType.Blank => throw new Exception("Cannot use return value of Blank function"),
-
-                        _ => throw new Exception("Unknown variable type")
-                    };
-                
+                    if (newNode._function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
+                    return newNode._function.ReturnType; 
 
                 default:
                     NonLeafNode nonLeafNode = (NonLeafNode)node;
-                    NodeType leftPtrType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
-                    NodeType rightPtrType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
+                    GloryType leftPtrType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
+                    GloryType rightPtrType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
 
-                    if (leftPtrType == rightPtrType)
+                    if (leftPtrType.Type == rightPtrType.Type)
                         return leftPtrType;
                     else
                         throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
             }
         }
 
-        private NodeType VerifyTypeOfDoubleEquals(Node node)
+        private GloryType VerifyTypeOfDoubleEquals(Node node)
         {
             NonLeafNode nonLeafNode = (NonLeafNode)node;
-            NodeType leftPtrType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
-            NodeType rightPtrType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
+            GloryType leftPtrType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
+            GloryType rightPtrType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
 
             if (leftPtrType == rightPtrType)
-                return NodeType.BoolLiteral;
+                return new GloryType(GloryTypes.Bool);
             else
                 throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
         }
 
-        private NodeType VerifyTypeOfIntComparisonOperators(Node node)
+        private GloryType VerifyTypeOfIntComparisonOperators(Node node)
         {
             NonLeafNode nonLeafNode = (NonLeafNode)node;
-            NodeType leftPtrType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
-            NodeType rightPtrType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
+            GloryType leftType = VerifyAndGetTypeOf(nonLeafNode.LeftPtr);
+            GloryType rightType = VerifyAndGetTypeOf(nonLeafNode.RightPtr);
 
-            if (leftPtrType == rightPtrType && leftPtrType == NodeType.NumberLiteral)
+            if (leftType == rightType && leftType.Type == GloryTypes.Int)
             {
                 // Comparison operators always give bool back
                 if (node.NodeType is NodeType.GreaterThan or NodeType.GreaterThanEquals or NodeType.LessThan or NodeType.LessThanEquals)
-                    return NodeType.BoolLiteral;
+                    return new GloryType(GloryTypes.Bool);
                 else
-                    return leftPtrType;
+                    return leftType;
             }
             else
-                throw new Exception("Type error between " + leftPtrType + " and " + rightPtrType);
+                throw new Exception("Type error between " + leftType.Type + " and " + rightType.Type);
         }
 
         public bool VerifyReturn(List<Statement> statements)

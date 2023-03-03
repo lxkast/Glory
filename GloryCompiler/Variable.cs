@@ -8,9 +8,9 @@ namespace GloryCompiler
 {
     internal class Variable
     {
-        public TokenType Type;
+        public GloryType Type;
         public string Name;
-        public Variable(TokenType type, string name)
+        public Variable(GloryType type, string name)
         {
             Type = type;
             Name = name;
