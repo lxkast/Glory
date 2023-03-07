@@ -9,7 +9,7 @@ while          → "while" expression "{" statement* "}"
 function       → (typename | "blank") IDENTIFIER "(" ( (typename identifier ",")* typename identifier )? ")" "{" statement* "}"
 return         → "return" expression
 
-typename       → "string" | "int" | "float" | typename "[" expression "]"
+typename       → "string" | "int" | "float" | typename ("[" (NUM_LITERAL)? "]")+
 
 expression     → compare
 compare        → additive (( "==" | ">" | "<" | ">=" | "<=" ) additive)*
