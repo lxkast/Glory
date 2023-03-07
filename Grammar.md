@@ -19,6 +19,6 @@ multiply       → index ("*" index)*
 index          → negate ("^" negate)*
 negate         → "-"* call
 call           → IDENTIFIER "(" ( ( expression ",")* expression )? ")" | array
-array          → IDENTIFIER "[" ( (expression ",")* expression)? "]" | unary
+array          → unary "[" ( (expression ",")* expression)? "]" | unary
 unary          → STRING_LITERAL | NUM_LITERAL | IDENTIFIER | "(" expression ")"
 ```
