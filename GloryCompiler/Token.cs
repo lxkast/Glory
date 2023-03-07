@@ -50,6 +50,8 @@ namespace GloryCompiler
         GreaterThan, //tick
         GreaterThanEquals, //tick
         Index, //tick
+        Mod, //tick
+        Div, //tick
 
 
         Comma,
@@ -67,6 +69,8 @@ namespace GloryCompiler
         CloseBracket, //tick
         OpenCurly, //tick
         CloseCurly, //tick
+        OpenSquare,
+        CloseSquare,
 
         // Literals:
         StringLiteral, //tick

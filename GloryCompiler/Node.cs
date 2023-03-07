@@ -67,6 +67,18 @@ namespace GloryCompiler
         }
     }
 
+    internal class IndexNode : Node
+    {
+        public Node _target;
+        public Node _index;
+
+        public IndexNode(Node target, Node index) : base(NodeType.Indexer)
+        {
+            _target = target;
+            _index = index;
+        }
+    }
+
 
     public enum NodeType
     {
@@ -82,10 +94,13 @@ namespace GloryCompiler
         Plus,
         Minus,
         Divide,
+        Div,
+        Mod,
         Multiply,
         Index,
         Negate,
         Call,
+        Indexer,
         Unary,
         StringLiteral,
         NumberLiteral,

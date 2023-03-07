@@ -3,22 +3,8 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-
-
-
-
-blank add(int a, int b)
-{
-    int c = a+ b;
-}
-
-
-
-
-
-
-
-
+int [354657][] a;
+int b = a[12][421] + 781;
 
 ");
 List<Token> tokens = lexer.Process();

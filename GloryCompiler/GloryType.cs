@@ -47,7 +47,18 @@ namespace GloryCompiler
     internal class ArrayGloryType : GloryType
     {
         public GloryType ItemType;
-        public ArrayGloryType(GloryType itemType) : base(GloryTypes.Array)
+        public int _size;
+        public ArrayGloryType(GloryType itemType, int size) : base(GloryTypes.Array)
+        {
+            ItemType = itemType;
+            _size = size;
+        }
+    }
+
+    internal class ListGloryType : GloryType
+    {
+        public GloryType ItemType;
+        public ListGloryType(GloryType itemType) : base(GloryTypes.List)
         {
             ItemType = itemType;
         }
@@ -58,6 +69,7 @@ namespace GloryCompiler
         Int,
         String,
         Bool,
-        Array
+        Array,
+        List
     }
 }

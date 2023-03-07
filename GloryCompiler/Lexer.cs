@@ -36,7 +36,13 @@ namespace GloryCompiler
                         AddToken(new Token(TokenType.Times));
                         break;
                     case '/':
-                        AddToken(new Token(TokenType.Divide));
+                        if (PeekAhead(1) == '/')
+                            AddToken(new Token(TokenType.Div));
+                        else
+                            AddToken(new Token(TokenType.Divide));
+                        break;
+                    case '%':
+                        AddToken(new Token(TokenType.Mod));
                         break;
                     case '^':
                         AddToken(new Token(TokenType.Index));
@@ -58,6 +64,12 @@ namespace GloryCompiler
                         break;
                     case '}':
                         AddToken(new Token(TokenType.CloseCurly));
+                        break;
+                    case '[':
+                        AddToken(new Token(TokenType.OpenSquare));
+                        break;
+                    case ']':
+                        AddToken(new Token(TokenType.CloseSquare));
                         break;
                     case '=':
                         if (PeekAhead(1) == '=')

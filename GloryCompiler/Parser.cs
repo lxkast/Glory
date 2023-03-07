@@ -244,7 +244,29 @@ namespace GloryCompiler
         {
             TokenType type = ReadToken().Type;
             _currentIndex++;
-            return new GloryType(type);
+            GloryType currentType = new(type);
+            while (ReadToken().Type == TokenType.OpenSquare)
+            {
+                _currentIndex++;
+                if (ReadToken().Type == TokenType.NumberLiteral)
+                {
+                    NumberLiteralToken numberLiteral = (NumberLiteralToken)ReadToken();
+                    _currentIndex++;
+                    if (ReadToken().Type == TokenType.CloseSquare)
+                    {
+                        _currentIndex++;
+                        currentType = new ArrayGloryType(currentType, numberLiteral.Val);
+                    }
+                    else throw new Exception("Expected [");
+                }
+                else if (ReadToken().Type == TokenType.CloseSquare)
+                {
+                    currentType = new ListGloryType(currentType);
+                    _currentIndex++;
+                }
+                else throw new Exception("Expected constant number as array size");
+            }
+            return currentType;
         }
         public void ParseVariable()
         {
@@ -514,11 +536,26 @@ namespace GloryCompiler
         {
             Node currentTree = ParseMultiply();
 
-            while (ReadToken().Type == TokenType.Divide)
+            while (ReadToken().Type is TokenType.Divide or TokenType.Div or TokenType.Mod)
             {
-                _currentIndex++;
-                Node nextTerm = ParseMultiply();
-                currentTree = new NonLeafNode(NodeType.Divide, currentTree, nextTerm);
+                if (ReadToken().Type == TokenType.Divide)
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseMultiply();
+                    currentTree = new NonLeafNode(NodeType.Divide, currentTree, nextTerm);
+                }
+                else if (ReadToken().Type == TokenType.Div)
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseMultiply();
+                    currentTree = new NonLeafNode(NodeType.Div, currentTree, nextTerm);
+                }
+                else
+                {
+                    _currentIndex++;
+                    Node nextTerm = ParseMultiply();
+                    currentTree = new NonLeafNode(NodeType.Mod, currentTree, nextTerm);
+                }
             }
 
             return currentTree;
@@ -606,9 +643,28 @@ namespace GloryCompiler
             }
             else
             {
-                return ParseUnary();
+                return ParseIndexer();
             }
         }
+        public Node ParseIndexer()
+        {
+            Node currentTree = ParseUnary();
+            while (ReadToken().Type == TokenType.OpenSquare)
+            {
+                if (VerifyAndGetTypeOf(currentTree).Type is not GloryTypes.Array and not GloryTypes.String and not GloryTypes.List)
+                    throw new Exception("Can only index arrays, lists or strings");
+                _currentIndex++;
+                Node index = ParseExpression();
+                if (VerifyAndGetTypeOf(index).Type != GloryTypes.Int)
+                    throw new Exception("Array index must be an integer");
+                currentTree = new IndexNode(currentTree, index);
+                if (ReadToken().Type != TokenType.CloseSquare)
+                    throw new Exception("Expected ]");
+                _currentIndex++;
+            }
+            return currentTree;
+        }
+
         public Node ParseUnary()
         {
             switch (ReadToken().Type)
@@ -705,7 +761,18 @@ namespace GloryCompiler
                 case NodeType.Call:
                     CallNode newNode = (CallNode)node;
                     if (newNode._function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
-                    return newNode._function.ReturnType; 
+                    return newNode._function.ReturnType;
+                case NodeType.Indexer:
+                    IndexNode newwNode = (IndexNode)node;
+                    GloryType targetType = VerifyAndGetTypeOf(newwNode._target);
+                    if (targetType.Type == GloryTypes.Array)
+                        return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                    else if (targetType.Type == GloryTypes.String)
+                        return new GloryType(GloryTypes.String);
+                    else if (targetType.Type == GloryTypes.List)
+                        return ((ListGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                    else
+                        throw new Exception("Uh oh...");
 
                 default:
                     NonLeafNode nonLeafNode = (NonLeafNode)node;
