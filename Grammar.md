@@ -18,7 +18,7 @@ divide         → multiply ("/" multiply)*
 multiply       → index ("*" index)*
 index          → negate ("^" negate)*
 negate         → "-"* call
-call           → IDENTIFIER "(" ( ( expression ",")* expression )? ")" | unary
-array          → "[" ( (expression ",")* expression)? "]"
+call           → IDENTIFIER "(" ( ( expression ",")* expression )? ")" | array
+array          → IDENTIFIER "[" ( (expression ",")* expression)? "]" | unary
 unary          → STRING_LITERAL | NUM_LITERAL | IDENTIFIER | "(" expression ")"
 ```
