@@ -3,9 +3,12 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-int [354657][] a;
-int b = a[12][421] + 781;
 
+int [] FUnction()
+{
+    int a = 2;
+    int b = a + 2;
+}
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);

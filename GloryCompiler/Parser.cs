@@ -65,21 +65,6 @@ namespace GloryCompiler
             _currentVariables.Add(variable);
         }
 
-        public bool ParseOuterStatement()
-        {
-            if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.BoolType or TokenType.Blank)
-            {
-                if (PeekToken(1).Type == TokenType.Identifier)
-                {
-                    if (PeekToken(2).Type == TokenType.OpenBracket)
-                    {
-                        ParseFunction();
-                        return true;
-                    }
-                }
-            }
-            return ParseStatement();
-        }
 
         public void ParseOuterStatements()
         {
@@ -88,6 +73,36 @@ namespace GloryCompiler
             {
                 isStatement = ParseOuterStatement();
             }
+        }
+        public bool ParseOuterStatement()
+        {
+            if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.BoolType or TokenType.Blank)
+            {
+                GloryType type;
+                if (ReadToken().Type == TokenType.Blank)
+                {
+                    _currentIndex++;
+                    ParseFunction(null); // If we saw blank it's definitely a function
+                    return true;
+                }
+                else
+                {
+                    type = ParseType();
+
+                    if (ReadToken().Type == TokenType.Identifier)
+                    {
+                        if (PeekToken(1).Type == TokenType.OpenBracket)
+                            ParseFunction(type);
+                        else
+                            ParseVariable(type);
+                        return true;
+                    }
+                    else throw new Exception("Expected identifier");
+                }
+
+                
+            }
+            return ParseStatement();
         }
 
         public void ParseStatements()
@@ -104,7 +119,8 @@ namespace GloryCompiler
             // Variables (type identifier)
             if (ReadToken().Type is TokenType.IntType or TokenType.StringType or TokenType.FloatType or TokenType.BoolType)
             {
-                ParseVariable();
+                GloryType type = ParseType();
+                ParseVariable(type);
                 if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
                 _currentIndex++;
             }
@@ -164,17 +180,8 @@ namespace GloryCompiler
             }
         }
 
-        public void ParseFunction()
+        public void ParseFunction(GloryType returnType)
         {
-
-            GloryType returnType;
-            if (ReadToken().Type == TokenType.Blank)
-            {
-                returnType = null;
-                _currentIndex++;
-            }
-            else
-                returnType = ParseType();
 
             string name = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex+=2;
@@ -268,10 +275,8 @@ namespace GloryCompiler
             }
             return currentType;
         }
-        public void ParseVariable()
+        public void ParseVariable(GloryType type)
         {
-            GloryType type = ParseType();
-
             if (ReadToken().Type == TokenType.Identifier)
             {
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
