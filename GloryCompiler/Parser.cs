@@ -94,13 +94,17 @@ namespace GloryCompiler
                         if (PeekToken(1).Type == TokenType.OpenBracket)
                             ParseFunction(type);
                         else
+                        {
                             ParseVariable(type);
+
+                            if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
+                            _currentIndex++;
+                        }
+
                         return true;
                     }
                     else throw new Exception("Expected identifier");
                 }
-
-                
             }
             return ParseStatement();
         }
@@ -166,9 +170,14 @@ namespace GloryCompiler
         public void ParseReturn()
         {
             _currentIndex++;
-            Node returnExpression= ParseExpression();
+
+            // Read expression to return
+            Node returnExpression = ParseExpression();
+
+            // Ensure return is valid
             if (_currentFunction == null) throw new Exception("Cannot return outside of a function");
             if (_currentFunction.ReturnType == null) throw new Exception("Cannot return from a blank function");
+
             if (VerifyAndGetTypeOf(returnExpression) == _currentFunction.ReturnType)
             {
                 ReturnStatement statement = new ReturnStatement(returnExpression);
@@ -182,35 +191,37 @@ namespace GloryCompiler
 
         public void ParseFunction(GloryType returnType)
         {
-
             string name = ((IdentifierLiteralToken)ReadToken()).Val;
-            _currentIndex+=2;
+            _currentIndex += 2;
             List<Variable> parameters = new List<Variable>();
 
+            // Make sure there's no functions with this name already.
+            if (TryFindFunction(name) != null) throw new Exception("Function name already exists");
+
+            // Read arguments
             while (ReadToken().Type != TokenType.CloseBracket)
             {
                 if (ReadToken().Type is not TokenType.IntType and not TokenType.StringType and not TokenType.FloatType)
                     throw new Exception("Expected type");
 
+                // Parse argument type
                 GloryType paramType = ParseType();
 
-                if (ReadToken().Type == TokenType.Identifier)
-                {
-                    string paramName = ((IdentifierLiteralToken)ReadToken()).Val;
+                // Ensure identifier
+                if (ReadToken().Type != TokenType.Identifier) throw new Exception("Expected identifier");
+
+                // Handle argument name
+                string paramName = ((IdentifierLiteralToken)ReadToken()).Val;
+                _currentIndex++;
+                parameters.Add(new Variable(paramType, paramName));
+
+                // Handle comma or argument list end
+                if (ReadToken().Type == TokenType.CloseBracket) break;
+
+                if (ReadToken().Type == TokenType.Comma)
                     _currentIndex++;
-                    parameters.Add(new Variable(paramType, paramName));
-
-                    if (ReadToken().Type == TokenType.CloseBracket) break;
-
-                    if (ReadToken().Type == TokenType.Comma)
-                        _currentIndex++;
-                    else
-                        throw new Exception("Expected comma");
-                }
                 else
-                {
-                    throw new Exception("Expected identifier");
-                }
+                    throw new Exception("Expected comma");
             }
 
             _currentIndex++; // Eat the closing bracket
@@ -221,25 +232,27 @@ namespace GloryCompiler
             if (ReadToken().Type == TokenType.OpenCurly)
             {
                 _currentIndex++;
+
+                // Add function to list
                 _GlobalFunctions.Add(func);
                 _currentFunction = func;
+
+                // Parse the function body
                 BlockStatement previousBlock = EnterBlock(func);
                 ParseStatements();
                 ExitBlock(previousBlock);
+
                 _currentFunction = null;
+
+                // Ensure } is present
                 if (ReadToken().Type == TokenType.CloseCurly)
-                {
                     _currentIndex++;
-                }
                 else
-                {
                     throw new Exception("Expected }");
-                }
             }
-            else
-            {
-                throw new Exception("Expected {");
-            }
+            else throw new Exception("Expected {");
+
+            // Verify all code paths return if return type is present
             if (returnType != null)
             {
                 if (!VerifyReturn(func.Code))
@@ -252,9 +265,13 @@ namespace GloryCompiler
             TokenType type = ReadToken().Type;
             _currentIndex++;
             GloryType currentType = new(type);
+
+            // Handle arrays + lists if "[" is present
             while (ReadToken().Type == TokenType.OpenSquare)
             {
                 _currentIndex++;
+
+                // Handle arrays
                 if (ReadToken().Type == TokenType.NumberLiteral)
                 {
                     NumberLiteralToken numberLiteral = (NumberLiteralToken)ReadToken();
@@ -266,21 +283,30 @@ namespace GloryCompiler
                     }
                     else throw new Exception("Expected [");
                 }
+
+                // Handle lists
                 else if (ReadToken().Type == TokenType.CloseSquare)
                 {
                     currentType = new ListGloryType(currentType);
                     _currentIndex++;
                 }
+
+                // Invalid syntax
                 else throw new Exception("Expected constant number as array size");
             }
+
             return currentType;
         }
+
         public void ParseVariable(GloryType type)
         {
             if (ReadToken().Type == TokenType.Identifier)
             {
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
                 _currentIndex++;
+
+                // Make sure there's no variables with this name already.
+                if (TryFindIdentifier(name) != null) throw new Exception("Variable name already exists");
 
                 // Create the variable
                 Variable variable = new Variable(type, name);
@@ -311,7 +337,6 @@ namespace GloryCompiler
 
             if (ReadToken().Type == TokenType.Equals)
             {
-                
                 _currentIndex++;
 
                 // Get the variable
@@ -332,49 +357,37 @@ namespace GloryCompiler
             else if (ReadToken().Type is TokenType.Plus or TokenType.Minus or TokenType.Times or TokenType.Divide)
             {
                 Token operationToken = ReadToken();
-                NodeType operationNodeType = NodeType.Null;
-                switch (operationToken.Type)
+                NodeType operationNodeType = operationToken.Type switch
                 {
-                    case TokenType.Plus:
-                        operationNodeType = NodeType.Plus;
-                        break;
-                    case TokenType.Minus:
-                        operationNodeType = NodeType.Minus;
-                        break;
-                    case TokenType.Times:
-                        operationNodeType = NodeType.Multiply;
-                        break;
-                    case TokenType.Divide:
-                        operationNodeType = NodeType.Divide;
-                        break;
-                }
+                    TokenType.Plus => NodeType.Plus,
+                    TokenType.Minus => NodeType.Minus,
+                    TokenType.Times => NodeType.Multiply,
+                    TokenType.Divide => NodeType.Divide,
+                    _ => NodeType.Null
+                };
+                
                 _currentIndex++;
-                if (ReadToken().Type == TokenType.Equals)
-                {
-                    _currentIndex++;
-                    // Get the variable
-                    Variable variable = FindIdentifier(val);
-                    VariableNode varNode = new VariableNode(variable);
 
-                    // Parse the right and create the node
-                    Node right = ParseExpression();
-                    Node operation = new NonLeafNode(operationNodeType, varNode, right);
-                    Node equals = new NonLeafNode(NodeType.Assignment, varNode, operation);
-                    VerifyAndGetTypeOf(equals);
+                // Expect equals
+                if (ReadToken().Type != TokenType.Equals) throw new Exception("Expected equals");
 
-                    // Create the statement
-                    SingleLineStatement statement = new SingleLineStatement(equals);
-                    AddStatementToList(statement);
-                }
-                else
-                {
-                    throw new Exception("Expected equals");
-                }
+                _currentIndex++;
+
+                // Get the variable
+                Variable variable = FindIdentifier(val);
+                VariableNode varNode = new VariableNode(variable);
+
+                // Parse the right and create the node
+                Node right = ParseExpression();
+                Node operation = new NonLeafNode(operationNodeType, varNode, right);
+                Node equals = new NonLeafNode(NodeType.Assignment, varNode, operation);
+                VerifyAndGetTypeOf(equals);
+
+                // Create the statement
+                SingleLineStatement statement = new SingleLineStatement(equals);
+                AddStatementToList(statement);
             }
-            else
-            {
-                throw new Exception("Expected equals");
-            }
+            else throw new Exception("Expected equals");
         }
 
         public void ParseWhile()
@@ -524,7 +537,6 @@ namespace GloryCompiler
                     _currentIndex++;
                     Node nextTerm = ParseDivide();
                     currentTree = new NonLeafNode(NodeType.Plus, currentTree, nextTerm);
-
                 }
                 else
                 {
@@ -543,24 +555,17 @@ namespace GloryCompiler
 
             while (ReadToken().Type is TokenType.Divide or TokenType.Div or TokenType.Mod)
             {
-                if (ReadToken().Type == TokenType.Divide)
+                NodeType treeType = ReadToken().Type switch
                 {
-                    _currentIndex++;
-                    Node nextTerm = ParseMultiply();
-                    currentTree = new NonLeafNode(NodeType.Divide, currentTree, nextTerm);
-                }
-                else if (ReadToken().Type == TokenType.Div)
-                {
-                    _currentIndex++;
-                    Node nextTerm = ParseMultiply();
-                    currentTree = new NonLeafNode(NodeType.Div, currentTree, nextTerm);
-                }
-                else
-                {
-                    _currentIndex++;
-                    Node nextTerm = ParseMultiply();
-                    currentTree = new NonLeafNode(NodeType.Mod, currentTree, nextTerm);
-                }
+                    TokenType.Divide => NodeType.Divide,
+                    TokenType.Div => NodeType.Div,
+                    TokenType.Mod => NodeType.Mod,
+                    _ => throw new Exception("Unrecognised token type")
+                };
+
+                _currentIndex++;
+                Node nextTerm = ParseMultiply();
+                currentTree = new NonLeafNode(treeType, currentTree, nextTerm);
             }
 
             return currentTree;
@@ -613,20 +618,24 @@ namespace GloryCompiler
 
         public Node ParseCall()
         {
-            if(ReadToken().Type == TokenType.Identifier && PeekToken(1).Type == TokenType.OpenBracket)
+            if (ReadToken().Type == TokenType.Identifier && PeekToken(1).Type == TokenType.OpenBracket)
             {
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
-                Function func = FindFunction(name);
+
+                // Find the function
+                Function func = TryFindFunction(name);
                 NativeFunction nativeFunc = null;
                 if (func == null)
                 {
                     // Check if in NativeFunctions
-                    nativeFunc = FindNativeFunctions(name);
+                    nativeFunc = TryFindNativeFunction(name);
                     if (nativeFunc == null)
                         throw new Exception("Cannot find function with name " + name);
                 }
+
                 _currentIndex += 2;
 
+                // Handle arguments
                 List<Node> arguments = new List<Node>();
                 while (ReadToken().Type != TokenType.CloseBracket)
                 {
@@ -641,6 +650,8 @@ namespace GloryCompiler
                 }
 
                 _currentIndex++;
+
+                // For native functions
                 if (func == null)
                 {
                     if (arguments.Count != nativeFunc.Parameters.Count) 
@@ -656,6 +667,8 @@ namespace GloryCompiler
 
                     return new NativeCallNode(nativeFunc, arguments);
                 }
+
+                // For regular functions
                 else
                 {
                     if (arguments.Count != func.Parameters.Count)
@@ -680,19 +693,29 @@ namespace GloryCompiler
         public Node ParseIndexer()
         {
             Node currentTree = ParseUnary();
+
             while (ReadToken().Type == TokenType.OpenSquare)
             {
+                // Check base of indexing is valid
                 if (VerifyAndGetTypeOf(currentTree).Type is not GloryTypes.Array and not GloryTypes.String and not GloryTypes.List)
                     throw new Exception("Can only index arrays, lists or strings");
+
                 _currentIndex++;
+
+                // Parse index position
                 Node index = ParseExpression();
                 if (VerifyAndGetTypeOf(index).Type != GloryTypes.Int)
                     throw new Exception("Array index must be an integer");
+
+                // Create node
                 currentTree = new IndexNode(currentTree, index);
+
+                // Handle "]"
                 if (ReadToken().Type != TokenType.CloseSquare)
                     throw new Exception("Expected ]");
                 _currentIndex++;
             }
+
             return currentTree;
         }
 
@@ -743,15 +766,22 @@ namespace GloryCompiler
 
         private Variable FindIdentifier(string name)
         {
-            for (int i = 0; i < _currentVariables.Count();i++)
+            Variable result = TryFindIdentifier(name);
+            if (result == null) throw new Exception("Cannot find variable with name " + name);
+            return result;
+        }
+
+        private Variable TryFindIdentifier(string name)
+        {
+            for (int i = 0; i < _currentVariables.Count(); i++)
             {
                 if (_currentVariables[i].Name == name)
                     return _currentVariables[i];
             }
-            throw new Exception("Cannot find variable with name " + name);
+            return null;
         }
 
-        private Function FindFunction(string name)
+        private Function TryFindFunction(string name)
         {
             for (int i = 0; i < _GlobalFunctions.Count(); i++)
             {
@@ -761,7 +791,7 @@ namespace GloryCompiler
             return null;
         }
 
-        private NativeFunction FindNativeFunctions(string name)
+        private NativeFunction TryFindNativeFunction(string name)
         {
             NativeFunctions nativeFunctinons = new NativeFunctions();
             for (int i = 0; i <  nativeFunctinons.nativeFunctions.Count(); i++)
@@ -802,17 +832,17 @@ namespace GloryCompiler
                     return VerifyTypeOfIntComparisonOperators(node);
                 case NodeType.Call:
                     CallNode newNode = (CallNode)node;
-                    if (newNode._function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
-                    return newNode._function.ReturnType;
+                    if (newNode.Function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
+                    return newNode.Function.ReturnType;
                 case NodeType.Indexer:
                     IndexNode newwNode = (IndexNode)node;
-                    GloryType targetType = VerifyAndGetTypeOf(newwNode._target);
+                    GloryType targetType = VerifyAndGetTypeOf(newwNode.Target);
                     if (targetType.Type == GloryTypes.Array)
-                        return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                        return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode.Target)).ItemType;
                     else if (targetType.Type == GloryTypes.String)
                         return new GloryType(GloryTypes.String);
                     else if (targetType.Type == GloryTypes.List)
-                        return ((ListGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                        return ((ListGloryType)VerifyAndGetTypeOf(newwNode.Target)).ItemType;
                     else
                         throw new Exception("Uh oh...");
 
@@ -866,17 +896,21 @@ namespace GloryCompiler
                 {
                     return true;
                 }
-                else
+                else if (statement is IfStatement ifStatement)
                 {
-                    if (statement is IfStatement ifStatement)
+                    bool mainBranchReturns = VerifyReturn(ifStatement.Code);
+                    if (ifStatement.Else != null)
                     {
-                        bool isMainBlock = VerifyReturn(ifStatement.Code);
-                        if (ifStatement.Else != null)
-                        {
-                            bool isElse = VerifyReturn(ifStatement.Else.Code);
-                            if (isMainBlock && isElse) return true;
-                        }
+                        bool elseBranchBranches = VerifyReturn(ifStatement.Else.Code);
+
+                        // If both the main *and* else branches return, this block clearly always returns.
+                        if (mainBranchReturns && elseBranchBranches) return true;
                     }
+                }
+                else if (statement is WhileStatement whileStatement)
+                {
+                    // Special case: If we have a really obvious "while true", we'll count that as an always-returning block
+                    if (whileStatement.Condition is BoolNode { Bool: true }) return true;
                 }
             }
             return false;
