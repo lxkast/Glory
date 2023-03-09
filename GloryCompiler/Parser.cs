@@ -94,13 +94,17 @@ namespace GloryCompiler
                         if (PeekToken(1).Type == TokenType.OpenBracket)
                             ParseFunction(type);
                         else
+                        {
                             ParseVariable(type);
+
+                            if (ReadToken().Type != TokenType.Semicolon) throw new Exception("Expected semicolon");
+                            _currentIndex++;
+                        }
+
                         return true;
                     }
                     else throw new Exception("Expected identifier");
                 }
-
-                
             }
             return ParseStatement();
         }

@@ -3,8 +3,8 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-int a = 5;
-a *= 2;
+int [] arr;
+
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);
