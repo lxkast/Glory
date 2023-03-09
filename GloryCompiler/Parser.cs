@@ -896,19 +896,21 @@ namespace GloryCompiler
                 {
                     return true;
                 }
-                else
+                else if (statement is IfStatement ifStatement)
                 {
-                    if (statement is IfStatement ifStatement)
+                    bool mainBranchReturns = VerifyReturn(ifStatement.Code);
+                    if (ifStatement.Else != null)
                     {
-                        bool mainBranchReturns = VerifyReturn(ifStatement.Code);
-                        if (ifStatement.Else != null)
-                        {
-                            bool elseBranchBranches = VerifyReturn(ifStatement.Else.Code);
+                        bool elseBranchBranches = VerifyReturn(ifStatement.Else.Code);
 
-                            // If both the main *and* else branches return, this block clearly always returns.
-                            if (mainBranchReturns && elseBranchBranches) return true;
-                        }
+                        // If both the main *and* else branches return, this block clearly always returns.
+                        if (mainBranchReturns && elseBranchBranches) return true;
                     }
+                }
+                else if (statement is WhileStatement whileStatement)
+                {
+                    // Special case: If we have a really obvious "while true", we'll count that as an always-returning block
+                    if (whileStatement.Condition is BoolNode { _bool: true }) return true;
                 }
             }
             return false;
