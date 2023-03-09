@@ -301,6 +301,9 @@ namespace GloryCompiler
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
                 _currentIndex++;
 
+                // Make sure there's no variables with this name already.
+                if (TryFindIdentifier(name) != null) throw new Exception("Variable name already exists");
+
                 // Create the variable
                 Variable variable = new Variable(type, name);
                 VariableNode node = new VariableNode(variable);
@@ -616,12 +619,12 @@ namespace GloryCompiler
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
 
                 // Find the function
-                Function func = FindFunction(name);
+                Function func = TryFindFunction(name);
                 NativeFunction nativeFunc = null;
                 if (func == null)
                 {
                     // Check if in NativeFunctions
-                    nativeFunc = FindNativeFunctions(name);
+                    nativeFunc = TryFindNativeFunction(name);
                     if (nativeFunc == null)
                         throw new Exception("Cannot find function with name " + name);
                 }
@@ -759,15 +762,22 @@ namespace GloryCompiler
 
         private Variable FindIdentifier(string name)
         {
-            for (int i = 0; i < _currentVariables.Count();i++)
+            Variable result = TryFindIdentifier(name);
+            if (result == null) throw new Exception("Cannot find variable with name " + name);
+            return result;
+        }
+
+        private Variable TryFindIdentifier(string name)
+        {
+            for (int i = 0; i < _currentVariables.Count(); i++)
             {
                 if (_currentVariables[i].Name == name)
                     return _currentVariables[i];
             }
-            throw new Exception("Cannot find variable with name " + name);
+            return null;
         }
 
-        private Function FindFunction(string name)
+        private Function TryFindFunction(string name)
         {
             for (int i = 0; i < _GlobalFunctions.Count(); i++)
             {
@@ -777,7 +787,7 @@ namespace GloryCompiler
             return null;
         }
 
-        private NativeFunction FindNativeFunctions(string name)
+        private NativeFunction TryFindNativeFunction(string name)
         {
             NativeFunctions nativeFunctinons = new NativeFunctions();
             for (int i = 0; i <  nativeFunctinons.nativeFunctions.Count(); i++)

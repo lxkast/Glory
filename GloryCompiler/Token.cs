@@ -51,9 +51,7 @@ namespace GloryCompiler
         GreaterThanEquals, 
         Index, 
         Mod, 
-        Div, 
-
-
+        Div,
         Comma,
 
         // Types:
