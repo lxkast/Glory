@@ -67,6 +67,17 @@ namespace GloryCompiler
         }
     }
 
+    internal class NativeCallNode : Node
+    {
+        public NativeFunction _function;
+        public List<Node> _args;
+        public NativeCallNode(NativeFunction function, List<Node> args) : base(NodeType.NativeCall)
+        {
+            _function = function;
+            _args = args;
+        }
+    }
+
     internal class IndexNode : Node
     {
         public Node _target;
@@ -100,6 +111,7 @@ namespace GloryCompiler
         Index,
         Negate,
         Call,
+        NativeCall,
         Indexer,
         Unary,
         StringLiteral,

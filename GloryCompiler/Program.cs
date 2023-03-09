@@ -4,11 +4,7 @@ Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
 
-int [] FUnction()
-{
-    int a = 2;
-    int b = a + 2;
-}
+print(""Hello World"");
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);

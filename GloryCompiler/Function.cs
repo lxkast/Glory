@@ -20,4 +20,18 @@ namespace GloryCompiler
             Vars.AddRange(Parameters);
         }
     }
+
+    internal class NativeFunction
+    {
+        public string Name;
+        public GloryType ReturnType;
+        public List<Variable> Parameters;
+
+        public NativeFunction(List<Variable> parameters, string name, GloryType returnType)
+        {
+            Parameters = parameters;
+            ReturnType = returnType;
+            Name = name;
+        }
+    }
 }

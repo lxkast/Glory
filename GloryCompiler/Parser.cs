@@ -213,7 +213,7 @@ namespace GloryCompiler
                 }
             }
 
-            _currentIndex++; // Eat the )
+            _currentIndex++; // Eat the closing bracket
             _currentVariables.AddRange(parameters);
 
             Function func = new Function(parameters, name, returnType);
@@ -617,6 +617,14 @@ namespace GloryCompiler
             {
                 string name = ((IdentifierLiteralToken)ReadToken()).Val;
                 Function func = FindFunction(name);
+                NativeFunction nativeFunc = null;
+                if (func == null)
+                {
+                    // Check if in NativeFunctions
+                    nativeFunc = FindNativeFunctions(name);
+                    if (nativeFunc == null)
+                        throw new Exception("Cannot find function with name " + name);
+                }
                 _currentIndex += 2;
 
                 List<Node> arguments = new List<Node>();
@@ -631,20 +639,38 @@ namespace GloryCompiler
                     else
                         throw new Exception("Expected comma");
                 }
+
                 _currentIndex++;
-                if (arguments.Count != func.Parameters.Count) 
-                    throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
-
-                for (int i = 0; i < arguments.Count; i++)
+                if (func == null)
                 {
-                    GloryType argumentType = VerifyAndGetTypeOf(arguments[i]);
+                    if (arguments.Count != nativeFunc.Parameters.Count) 
+                        throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
 
-                    if (argumentType != func.Parameters[i].Type) 
-                        throw new Exception("Call to " + name + "() has incorrect argument types.");
+                    for (int i = 0; i < arguments.Count; i++)
+                    {
+                        GloryType argumentType = VerifyAndGetTypeOf(arguments[i]);
+
+                        if (argumentType != nativeFunc.Parameters[i].Type)
+                            throw new Exception("Call to " + name + "() has incorrect argument types.");
+                    }
+
+                    return new NativeCallNode(nativeFunc, arguments);
                 }
+                else
+                {
+                    if (arguments.Count != func.Parameters.Count)
+                        throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
 
-                CallNode res = new CallNode(func, arguments);
-                return res;
+                    for (int i = 0; i < arguments.Count; i++)
+                    {
+                        GloryType argumentType = VerifyAndGetTypeOf(arguments[i]);
+
+                        if (argumentType != func.Parameters[i].Type)
+                            throw new Exception("Call to " + name + "() has incorrect argument types.");
+                    }
+
+                    return new CallNode(func, arguments);
+                }
             }
             else
             {
@@ -732,7 +758,18 @@ namespace GloryCompiler
                 if (_GlobalFunctions[i].Name == name)
                     return _GlobalFunctions[i];
             }
-            throw new Exception("Cannot find function with name " + name);
+            return null;
+        }
+
+        private NativeFunction FindNativeFunctions(string name)
+        {
+            NativeFunctions nativeFunctinons = new NativeFunctions();
+            for (int i = 0; i <  nativeFunctinons.nativeFunctions.Count(); i++)
+            {
+                if (nativeFunctinons.nativeFunctions[i].Name == name)
+                    return nativeFunctinons.nativeFunctions[i];
+            }
+            return null;
         }
 
         private GloryType VerifyAndGetTypeOf(Node node)
