@@ -192,8 +192,11 @@ namespace GloryCompiler
         public void ParseFunction(GloryType returnType)
         {
             string name = ((IdentifierLiteralToken)ReadToken()).Val;
-            _currentIndex+=2;
+            _currentIndex += 2;
             List<Variable> parameters = new List<Variable>();
+
+            // Make sure there's no functions with this name already.
+            if (TryFindFunction(name) != null) throw new Exception("Function name already exists");
 
             // Read arguments
             while (ReadToken().Type != TokenType.CloseBracket)
@@ -294,6 +297,7 @@ namespace GloryCompiler
 
             return currentType;
         }
+
         public void ParseVariable(GloryType type)
         {
             if (ReadToken().Type == TokenType.Identifier)
