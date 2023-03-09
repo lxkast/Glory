@@ -39,52 +39,51 @@ namespace GloryCompiler
     public enum TokenType
     {
         // Operators:
-        Plus, //tick
-        Minus, //tick
-        Times, //tick
-        Divide, //tick
-        LessThan, //tick
-        LessThanEquals, //tick
-        Equals, //tick
-        DoubleEquals, //tick
-        GreaterThan, //tick
-        GreaterThanEquals, //tick
-        Index, //tick
-        Mod, //tick
-        Div, //tick
+        Plus, 
+        Minus, 
+        Times, 
+        Divide, 
+        LessThan, 
+        LessThanEquals, 
+        Equals, 
+        DoubleEquals, 
+        GreaterThan, 
+        GreaterThanEquals, 
+        Index, 
+        Mod, 
+        Div, 
 
 
         Comma,
 
         // Types:
-        IntType, //tick
-        StringType, //tick
-        FloatType, //tick
-        BoolType, //tick
-        Blank, //tick
+        IntType, 
+        StringType, 
+        FloatType, 
+        BoolType, 
+        Blank, 
 
         // General Structure:
-        Semicolon, //tick
-        OpenBracket,//tick
-        CloseBracket, //tick
-        OpenCurly, //tick
-        CloseCurly, //tick
+        Semicolon, 
+        OpenBracket,
+        CloseBracket, 
+        OpenCurly, 
+        CloseCurly, 
         OpenSquare,
         CloseSquare,
 
         // Literals:
-        StringLiteral, //tick
-        NumberLiteral, //tick
-        Identifier, //tick
-
+        StringLiteral, 
+        NumberLiteral, 
         BoolLiteral,
+        Identifier,
 
         // Keywords:
-        If, //tick
-        ElseIf, //tick
-        Else, //tick
-        While, //tick
-        Return, //tick
+        If, 
+        ElseIf,
+        Else,
+        While,
+        Return,
 
         // Null:
         Null
