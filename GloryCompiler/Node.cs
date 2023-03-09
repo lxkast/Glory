@@ -44,49 +44,49 @@ namespace GloryCompiler
 
     internal class IntNode : Node
     {
-        public int _int;
+        public int Int;
 
-        public IntNode(int Int) : base(NodeType.NumberLiteral) => _int = Int;
+        public IntNode(int Int) : base(NodeType.NumberLiteral) => this.Int = Int;
     }
 
     internal class BoolNode : Node
     {
-        public bool _bool;
+        public bool Bool;
 
-        public BoolNode(bool Bool) : base(NodeType.BoolLiteral) => _bool = Bool;
+        public BoolNode(bool Bool) : base(NodeType.BoolLiteral) => this.Bool = Bool;
     }
 
     internal class CallNode : Node
     {
-        public Function _function;
-        public List<Node> _args;
+        public Function Function;
+        public List<Node> Args;
         public CallNode(Function function, List<Node> args) : base(NodeType.Call)
         {
-            _function = function;
-            _args = args;
+            Function = function;
+            Args = args;
         }
     }
 
     internal class NativeCallNode : Node
     {
-        public NativeFunction _function;
-        public List<Node> _args;
+        public NativeFunction Function;
+        public List<Node> Args;
         public NativeCallNode(NativeFunction function, List<Node> args) : base(NodeType.NativeCall)
         {
-            _function = function;
-            _args = args;
+            Function = function;
+            Args = args;
         }
     }
 
     internal class IndexNode : Node
     {
-        public Node _target;
-        public Node _index;
+        public Node Target;
+        public Node Index;
 
         public IndexNode(Node target, Node index) : base(NodeType.Indexer)
         {
-            _target = target;
-            _index = index;
+            Target = target;
+            Index = index;
         }
     }
 

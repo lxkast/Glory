@@ -832,17 +832,17 @@ namespace GloryCompiler
                     return VerifyTypeOfIntComparisonOperators(node);
                 case NodeType.Call:
                     CallNode newNode = (CallNode)node;
-                    if (newNode._function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
-                    return newNode._function.ReturnType;
+                    if (newNode.Function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
+                    return newNode.Function.ReturnType;
                 case NodeType.Indexer:
                     IndexNode newwNode = (IndexNode)node;
-                    GloryType targetType = VerifyAndGetTypeOf(newwNode._target);
+                    GloryType targetType = VerifyAndGetTypeOf(newwNode.Target);
                     if (targetType.Type == GloryTypes.Array)
-                        return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                        return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode.Target)).ItemType;
                     else if (targetType.Type == GloryTypes.String)
                         return new GloryType(GloryTypes.String);
                     else if (targetType.Type == GloryTypes.List)
-                        return ((ListGloryType)VerifyAndGetTypeOf(newwNode._target)).ItemType;
+                        return ((ListGloryType)VerifyAndGetTypeOf(newwNode.Target)).ItemType;
                     else
                         throw new Exception("Uh oh...");
 
@@ -910,7 +910,7 @@ namespace GloryCompiler
                 else if (statement is WhileStatement whileStatement)
                 {
                     // Special case: If we have a really obvious "while true", we'll count that as an always-returning block
-                    if (whileStatement.Condition is BoolNode { _bool: true }) return true;
+                    if (whileStatement.Condition is BoolNode { Bool: true }) return true;
                 }
             }
             return false;
