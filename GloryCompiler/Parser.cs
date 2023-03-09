@@ -252,9 +252,13 @@ namespace GloryCompiler
             TokenType type = ReadToken().Type;
             _currentIndex++;
             GloryType currentType = new(type);
+
+            // Handle arrays + lists if "[" is present
             while (ReadToken().Type == TokenType.OpenSquare)
             {
                 _currentIndex++;
+
+                // Handle arrays
                 if (ReadToken().Type == TokenType.NumberLiteral)
                 {
                     NumberLiteralToken numberLiteral = (NumberLiteralToken)ReadToken();
@@ -266,13 +270,18 @@ namespace GloryCompiler
                     }
                     else throw new Exception("Expected [");
                 }
+
+                // Handle lists
                 else if (ReadToken().Type == TokenType.CloseSquare)
                 {
                     currentType = new ListGloryType(currentType);
                     _currentIndex++;
                 }
+
+                // Invalid syntax
                 else throw new Exception("Expected constant number as array size");
             }
+
             return currentType;
         }
         public void ParseVariable(GloryType type)
@@ -311,7 +320,6 @@ namespace GloryCompiler
 
             if (ReadToken().Type == TokenType.Equals)
             {
-                
                 _currentIndex++;
 
                 // Get the variable
@@ -348,6 +356,7 @@ namespace GloryCompiler
                         operationNodeType = NodeType.Divide;
                         break;
                 }
+
                 _currentIndex++;
                 if (ReadToken().Type == TokenType.Equals)
                 {
@@ -366,15 +375,9 @@ namespace GloryCompiler
                     SingleLineStatement statement = new SingleLineStatement(equals);
                     AddStatementToList(statement);
                 }
-                else
-                {
-                    throw new Exception("Expected equals");
-                }
+                else throw new Exception("Expected equals");
             }
-            else
-            {
-                throw new Exception("Expected equals");
-            }
+            else throw new Exception("Expected equals");
         }
 
         public void ParseWhile()
@@ -680,19 +683,29 @@ namespace GloryCompiler
         public Node ParseIndexer()
         {
             Node currentTree = ParseUnary();
+
             while (ReadToken().Type == TokenType.OpenSquare)
             {
+                // Check base of indexing is valid
                 if (VerifyAndGetTypeOf(currentTree).Type is not GloryTypes.Array and not GloryTypes.String and not GloryTypes.List)
                     throw new Exception("Can only index arrays, lists or strings");
+
                 _currentIndex++;
+
+                // Parse index position
                 Node index = ParseExpression();
                 if (VerifyAndGetTypeOf(index).Type != GloryTypes.Int)
                     throw new Exception("Array index must be an integer");
+
+                // Create node
                 currentTree = new IndexNode(currentTree, index);
+
+                // Handle "]"
                 if (ReadToken().Type != TokenType.CloseSquare)
                     throw new Exception("Expected ]");
                 _currentIndex++;
             }
+
             return currentTree;
         }
 
