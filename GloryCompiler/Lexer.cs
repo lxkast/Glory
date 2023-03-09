@@ -82,6 +82,7 @@ namespace GloryCompiler
                         }
                         else
                             AddToken(new Token(TokenType.Equals));
+
                         break;
                     case '>':
                         if (PeekAhead(1) == '=')
@@ -92,6 +93,7 @@ namespace GloryCompiler
                         else
                             AddToken(new Token(TokenType.GreaterThan));
                         break;
+
                     case '<':
                         if (PeekAhead(1) == '=')
                         {
@@ -101,6 +103,7 @@ namespace GloryCompiler
                         else
                             AddToken(new Token(TokenType.LessThan));
                         break;
+
                     case '"':
                         string stringLiteral = "";
                         _currentPos++;
@@ -111,6 +114,7 @@ namespace GloryCompiler
                         }
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
+
                     case 'b':
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k' && IsWhitespaceOrSymbol(PeekAhead(5)))
                         {
@@ -124,6 +128,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
                     case 'e':
                         if (PeekAhead(1) == 'l' && PeekAhead(2) == 'i' && PeekAhead(3) == 'f' && IsWhitespaceOrSymbol(PeekAhead(4)))
@@ -159,6 +164,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
 
                     case 'i':
@@ -174,6 +180,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
                     case 'r':
                         if (PeekAhead(1) == 'e' && PeekAhead(2) == 't' && PeekAhead(3) == 'u' && PeekAhead(4) == 'r' && PeekAhead(5) == 'n' && IsWhitespaceOrSymbol(PeekAhead(6)))
@@ -183,6 +190,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
                     case 's':
                         if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && IsWhitespaceOrSymbol(PeekAhead(6)))
@@ -192,6 +200,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
                     case 't':
                         if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && IsWhitespaceOrSymbol(PeekAhead(4)))
@@ -199,12 +208,15 @@ namespace GloryCompiler
                             AddToken(new BoolLiteralToken(true));
                             _currentPos += 3;
                         }
-                        else if(PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && PeekAhead(4) == ';')
+                        else if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && PeekAhead(4) == ';')
                         {
                             AddToken(new BoolLiteralToken(true));
                             AddToken(new Token(TokenType.Semicolon));
                             _currentPos += 3;
                         }
+                        else
+                            ReadIdentifier();
+
                         break;
                     case 'w':
                         if (PeekAhead(1) == 'h' && PeekAhead(2) == 'i' && PeekAhead(3) == 'l' && PeekAhead(4) == 'e' && IsWhitespaceOrSymbol(PeekAhead(5)))
@@ -214,6 +226,7 @@ namespace GloryCompiler
                         }
                         else
                             ReadIdentifier();
+
                         break;
                     case '#':
                         while (GetCurrentChar() != '\n')

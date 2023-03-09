@@ -3,7 +3,7 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-int a = 5 // 6;
+int truea = 5 // 6;
 
 ");
 List<Token> tokens = lexer.Process();
