@@ -37,7 +37,10 @@ namespace GloryCompiler
                         break;
                     case '/':
                         if (PeekAhead(1) == '/')
+                        {
+                            _currentPos++;
                             AddToken(new Token(TokenType.Div));
+                        }
                         else
                             AddToken(new Token(TokenType.Divide));
                         break;

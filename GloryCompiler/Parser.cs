@@ -548,15 +548,17 @@ namespace GloryCompiler
 
             while (ReadToken().Type is TokenType.Divide or TokenType.Div or TokenType.Mod)
             {
-                _currentIndex++;
-                Node nextTerm = ParseMultiply();
-                currentTree = new NonLeafNode(ReadToken().Type switch
+                NodeType treeType = ReadToken().Type switch
                 {
                     TokenType.Divide => NodeType.Divide,
                     TokenType.Div => NodeType.Div,
                     TokenType.Mod => NodeType.Mod,
                     _ => throw new Exception("Unrecognised token type")
-                }, currentTree, nextTerm);
+                };
+
+                _currentIndex++;
+                Node nextTerm = ParseMultiply();
+                currentTree = new NonLeafNode(treeType, currentTree, nextTerm);
             }
 
             return currentTree;
