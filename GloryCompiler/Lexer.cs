@@ -109,114 +109,112 @@ namespace GloryCompiler
                         AddToken(new StringLiteralToken(stringLiteral));
                         break;
                     case 'b':
-                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k' && char.IsWhiteSpace(PeekAhead(5)))
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'a' && PeekAhead(3) == 'n' && PeekAhead(4) == 'k' && IsWhitespaceOrSymbol(PeekAhead(5)))
                         {
                             AddToken(new Token(TokenType.Blank));
-                            _currentPos += 5;
+                            _currentPos += 4;
                         }
-                        else if (PeekAhead(1) == 'o' && PeekAhead(2) == 'o' && PeekAhead(3) == 'l' && char.IsWhiteSpace(PeekAhead(4)))
+                        else if (PeekAhead(1) == 'o' && PeekAhead(2) == 'o' && PeekAhead(3) == 'l' && IsWhitespaceOrSymbol(PeekAhead(4)))
                         {
                             AddToken(new Token(TokenType.BoolType));
-                            _currentPos += 4;
+                            _currentPos += 3;
                         }
                         else
                             ReadIdentifier();
                         break;
                     case 'e':
-                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'i' && PeekAhead(3) == 'f' && char.IsWhiteSpace(PeekAhead(4)))
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'i' && PeekAhead(3) == 'f' && IsWhitespaceOrSymbol(PeekAhead(4)))
                         {
                             AddToken(new Token(TokenType.ElseIf));
-                            _currentPos += 4;
+                            _currentPos += 3;
                         }
-                        else if (PeekAhead(1) == 'l' && PeekAhead(2) == 's' && PeekAhead(3) == 'e' && char.IsWhiteSpace(PeekAhead(4)))
+                        else if (PeekAhead(1) == 'l' && PeekAhead(2) == 's' && PeekAhead(3) == 'e' && IsWhitespaceOrSymbol(PeekAhead(4)))
                         {
                             AddToken(new Token(TokenType.Else));
-                            _currentPos += 4;
+                            _currentPos += 3;
                         }
                         else
                             ReadIdentifier();
 
                         break;
                     case 'f':
-                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'o' && PeekAhead(3) == 'a' && PeekAhead(4) == 't' && char.IsWhiteSpace(PeekAhead(5)))
+                        if (PeekAhead(1) == 'l' && PeekAhead(2) == 'o' && PeekAhead(3) == 'a' && PeekAhead(4) == 't' && IsWhitespaceOrSymbol(PeekAhead(5)))
                         {
                             AddToken(new Token(TokenType.FloatType));
-                            _currentPos += 6;
+                            _currentPos += 5;
                         }
-                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
+                        else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && IsWhitespaceOrSymbol(PeekAhead(5)))
                         {
                             AddToken(new BoolLiteralToken(false));
-                            _currentPos += 5;
+                            _currentPos += 4;
                         }
                         else if (PeekAhead(1) == 'a' && PeekAhead(2) == 'l' && PeekAhead(3) == 's' && PeekAhead(4) == 'e' && PeekAhead(5) == ';')
                         {
                             AddToken(new BoolLiteralToken(false));
                             AddToken(new Token(TokenType.Semicolon));
-                            _currentPos += 5;
+                            _currentPos += 4;
                         }
                         else
                             ReadIdentifier();
                         break;
 
                     case 'i':
-                        if (PeekAhead(1) == 'n' && PeekAhead(2) == 't' && char.IsWhiteSpace(PeekAhead(3)))
+                        if (PeekAhead(1) == 'n' && PeekAhead(2) == 't' && IsWhitespaceOrSymbol(PeekAhead(3)))
                         {
                             AddToken(new Token(TokenType.IntType));
-                            _currentPos += 3;
-                        }
-                        else if (PeekAhead(1) == 'f' && char.IsWhiteSpace(PeekAhead(2)))
-                        {
                             _currentPos += 2;
+                        }
+                        else if (PeekAhead(1) == 'f' && IsWhitespaceOrSymbol(PeekAhead(2)))
+                        {
+                            _currentPos++;
                             AddToken(new Token(TokenType.If));
                         }
                         else
                             ReadIdentifier();
                         break;
                     case 'r':
-                        if (PeekAhead(1) == 'e' && PeekAhead(2) == 't' && PeekAhead(3) == 'u' && PeekAhead(4) == 'r' && PeekAhead(5) == 'n' && char.IsWhiteSpace(PeekAhead(6)))
+                        if (PeekAhead(1) == 'e' && PeekAhead(2) == 't' && PeekAhead(3) == 'u' && PeekAhead(4) == 'r' && PeekAhead(5) == 'n' && IsWhitespaceOrSymbol(PeekAhead(6)))
                         {
                             AddToken(new Token(TokenType.Return));
-                            _currentPos += 6;
+                            _currentPos += 5;
                         }
                         else
                             ReadIdentifier();
                         break;
                     case 's':
-                        if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && char.IsWhiteSpace(PeekAhead(6)))
+                        if (PeekAhead(1) == 't' && PeekAhead(2) == 'r' && PeekAhead(3) == 'i' && PeekAhead(4) == 'n' && PeekAhead(5) == 'g' && IsWhitespaceOrSymbol(PeekAhead(6)))
                         {
                             AddToken(new Token(TokenType.StringType));
-                            _currentPos += 6;
+                            _currentPos += 5;
                         }
                         else
                             ReadIdentifier();
                         break;
                     case 't':
-                        if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && char.IsWhiteSpace(PeekAhead(4)))
+                        if (PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && IsWhitespaceOrSymbol(PeekAhead(4)))
                         {
                             AddToken(new BoolLiteralToken(true));
-                            _currentPos += 4;
+                            _currentPos += 3;
                         }
                         else if(PeekAhead(1) == 'r' && PeekAhead(2) == 'u' && PeekAhead(3) == 'e' && PeekAhead(4) == ';')
                         {
                             AddToken(new BoolLiteralToken(true));
                             AddToken(new Token(TokenType.Semicolon));
-                            _currentPos += 4;
+                            _currentPos += 3;
                         }
                         break;
                     case 'w':
-                        if (PeekAhead(1) == 'h' && PeekAhead(2) == 'i' && PeekAhead(3) == 'l' && PeekAhead(4) == 'e' && char.IsWhiteSpace(PeekAhead(5)))
+                        if (PeekAhead(1) == 'h' && PeekAhead(2) == 'i' && PeekAhead(3) == 'l' && PeekAhead(4) == 'e' && IsWhitespaceOrSymbol(PeekAhead(5)))
                         {
                             AddToken(new Token(TokenType.While));
-                            _currentPos += 5;
+                            _currentPos += 4;
                         }
                         else
                             ReadIdentifier();
                         break;
                     case '#':
                         while (GetCurrentChar() != '\n')
-                        {
-                            _currentPos += 1;
-                        }
+                            _currentPos++;
                         break;
                     default:
                         if (char.IsDigit(currentChar))
@@ -276,5 +274,7 @@ namespace GloryCompiler
         }
 
         private void AddToken(Token token) => _result.Add(token);
+
+        public bool IsWhitespaceOrSymbol(char ch) => char.IsWhiteSpace(ch) || char.IsPunctuation(ch);
     }
 }
