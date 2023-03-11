@@ -30,16 +30,16 @@ namespace GloryCompiler
 
         public void CompilePrologue(int size)
         {
-            CodeOutput.EmitPush(new Operand(OperandBase.rbp, false, 0, 0));
-            CodeOutput.EmitMov(new Operand(OperandBase.rsp, false, 0, 0), new Operand(OperandBase.rbp, false, 0, 0));
-            CodeOutput.EmitSub(new Operand(OperandBase.rsp, false, 0, 0), new Operand(OperandBase.literal, false, 0, size));
+            CodeOutput.EmitPush(Operand.Rbp);
+            CodeOutput.EmitMov(Operand.Rsp, Operand.Rbp);
+            CodeOutput.EmitSub(Operand.Rsp, Operand.ForLiteral(size));
         }
 
         public void CompileEpilogue(int size)
         {
-            CodeOutput.EmitAdd(new Operand(OperandBase.rsp, false, 0, 0), new Operand(OperandBase.literal, false, 0, size));
-            CodeOutput.EmitMov(new Operand(OperandBase.rbp, false, 0, 0), new Operand(OperandBase.rsp, false, 0, 0));
-            CodeOutput.EmitPop(new Operand(OperandBase.rbp, false, 0, 0));
+            CodeOutput.EmitAdd(Operand.Rsp, Operand.ForLiteral(size));
+            CodeOutput.EmitMov(Operand.Rbp, Operand.Rsp);
+            CodeOutput.EmitPop(Operand.Rbp);
         }
     }
 }
