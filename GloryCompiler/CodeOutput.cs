@@ -33,7 +33,7 @@ namespace GloryCompiler
         {
             sw.Write("    ");
             sw.Write("pop ");
-            if (operand.opBase == OperandBase.literal)
+            if (operand.OpBase == OperandBase.Literal)
                 throw new Exception("Can only pop from stack into a register, not a literal");
             EmitOperand(operand);
             sw.WriteLine();
@@ -70,22 +70,22 @@ namespace GloryCompiler
 
         private void EmitOperand(Operand operand)
         {
-            if (operand.isDereferenced == true)
+            if (operand.IsDereferenced == true)
                 sw.Write("[");
-            if (operand.opBase == OperandBase.literal)
-                sw.Write(operand.literalValue);
+            if (operand.OpBase == OperandBase.Literal)
+                sw.Write(operand.LiteralValue);
             else
             {
-                sw.Write(operand.opBase switch
+                sw.Write(operand.OpBase switch
                 {
-                    OperandBase.rax => "rax",
-                    OperandBase.rcx => "rcx",
-                    OperandBase.rdx => "rdx",
-                    OperandBase.rbx => "rbx",
-                    OperandBase.rsi => "rsi",
-                    OperandBase.rdi => "rdi",
-                    OperandBase.rsp => "rsp",
-                    OperandBase.rbp => "rbp",
+                    OperandBase.Rax => "rax",
+                    OperandBase.Rcx => "rcx",
+                    OperandBase.Rdx => "rdx",
+                    OperandBase.Rbx => "rbx",
+                    OperandBase.Rsi => "rsi",
+                    OperandBase.Rdi => "rdi",
+                    OperandBase.Rsp => "rsp",
+                    OperandBase.Rbp => "rbp",
                     OperandBase.r8  => "r8",
                     OperandBase.r9  => "r9",
                     OperandBase.r10 => "r10",
@@ -104,16 +104,16 @@ namespace GloryCompiler
                     OperandBase.ebp => "ebp",
                     _ => throw new Exception("Unkown operand")
                 }) ;
-                if (operand.offset < 0)
+                if (operand.Offset < 0)
                 {
-                    sw.Write("-" + -operand.offset);
+                    sw.Write("-" + -operand.Offset);
                 }
-                else if (operand.offset > 0)
+                else if (operand.Offset > 0)
                 {
-                    sw.Write("+" + operand.offset);
+                    sw.Write("+" + operand.Offset);
                 }
             }
-            if (operand.isDereferenced == true)
+            if (operand.IsDereferenced == true)
                 sw.Write("]");
         }
     }

@@ -14,7 +14,7 @@ Parser parser = new Parser(tokens);
 using (StreamWriter sw = new StreamWriter("program.asm"))
 {
     CodeOutput CodeOutput = new ASMOutput(sw);
-    CodeOutput.EmitMov(new Operand(OperandBase.rcx, true, 12, 0), new Operand(OperandBase.literal, false, 0, 12));
+    CodeOutput.EmitMov(Operand.Rcx, Operand.ForLiteral(12));
 }
 
 Console.WriteLine("Done!");
