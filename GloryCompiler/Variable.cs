@@ -10,10 +10,12 @@ namespace GloryCompiler
     {
         public GloryType Type;
         public string Name;
+        public int Offset;
         public Variable(GloryType type, string name)
         {
             Type = type;
             Name = name;
+
         }
     }
 }

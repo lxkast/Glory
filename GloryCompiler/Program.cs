@@ -3,10 +3,18 @@
 Console.WriteLine("Hello, World!");
 
 Lexer lexer = new Lexer(@"
-int abc()
+
+int add(int a, int b)
 {
-    return 2;
+    int c = a+b;
+    return c;
 }
+
+string name(int[15] a)
+{
+    return ""lol"";
+}
+
 ");
 List<Token> tokens = lexer.Process();
 Parser parser = new Parser(tokens);
@@ -14,7 +22,7 @@ Parser parser = new Parser(tokens);
 using (StreamWriter sw = new StreamWriter("program.asm"))
 {
     CodeOutput CodeOutput = new ASMOutput(sw);
-    CodeOutput.EmitMov(Operand.Rcx, Operand.ForLiteral(12));
+    CodeGenerator generator = new CodeGenerator(parser, CodeOutput);
 }
 
 Console.WriteLine("Done!");

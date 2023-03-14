@@ -13,6 +13,8 @@ namespace GloryCompiler
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
         public abstract void EmitMov(Operand operand1, Operand operand2);
+        public abstract void EmitRet();
+        public abstract void EmitLabel(string name);
     }
 
     internal class ASMOutput : CodeOutput
@@ -68,6 +70,16 @@ namespace GloryCompiler
             sw.WriteLine();
         }
 
+        public override void EmitRet()
+        {
+            sw.WriteLine("    ret");
+        }
+
+        public override void EmitLabel(string name)
+        {
+            sw.WriteLine(name + ":");
+        }
+
         private void EmitOperand(Operand operand)
         {
             if (operand.IsDereferenced == true)
@@ -86,22 +98,22 @@ namespace GloryCompiler
                     OperandBase.Rdi => "rdi",
                     OperandBase.Rsp => "rsp",
                     OperandBase.Rbp => "rbp",
-                    OperandBase.r8  => "r8",
-                    OperandBase.r9  => "r9",
-                    OperandBase.r10 => "r10",
-                    OperandBase.r11 => "r11",
-                    OperandBase.r12 => "r12",
-                    OperandBase.r13 => "r13",
-                    OperandBase.e14 => "e14",
-                    OperandBase.e15 => "e15",
-                    OperandBase.eax => "eax",
-                    OperandBase.ecx => "ecx",
-                    OperandBase.edx => "edx",
-                    OperandBase.ebx => "ebx",
-                    OperandBase.esi => "esi",
-                    OperandBase.edi => "edi",
-                    OperandBase.esp => "esp",
-                    OperandBase.ebp => "ebp",
+                    OperandBase.R8  => "r8",
+                    OperandBase.R9  => "r9",
+                    OperandBase.R10 => "r10",
+                    OperandBase.R11 => "r11",
+                    OperandBase.R12 => "r12",
+                    OperandBase.R13 => "r13",
+                    OperandBase.E14 => "e14",
+                    OperandBase.E15 => "e15",
+                    OperandBase.Eax => "eax",
+                    OperandBase.Ecx => "ecx",
+                    OperandBase.Edx => "edx",
+                    OperandBase.Ebx => "ebx",
+                    OperandBase.Esi => "esi",
+                    OperandBase.Edi => "edi",
+                    OperandBase.Esp => "esp",
+                    OperandBase.Ebp => "ebp",
                     _ => throw new Exception("Unkown operand")
                 }) ;
                 if (operand.Offset < 0)
@@ -118,22 +130,22 @@ namespace GloryCompiler
         }
     }
 
-    internal class COFFOutput : CodeOutput
-    {
-        public override void EmitMov(Operand operand1, Operand operand2)
-        {
-            Console.WriteLine("obj");
-            throw new NotImplementedException();
-        }
-        public override void EmitPush(Operand operand)
-        {
-            Console.WriteLine("obj");
-            throw new NotImplementedException();
-        }
-        public override void EmitPop(Operand operand)
-        {
-            Console.WriteLine("obj");
-            throw new NotImplementedException();
-        }
-    }
+    //internal class COFFOutput : CodeOutput
+    //{
+    //    public override void EmitMov(Operand operand1, Operand operand2)
+    //    {
+    //        Console.WriteLine("obj");
+    //        throw new NotImplementedException();
+    //    }
+    //    public override void EmitPush(Operand operand)
+    //    {
+    //        Console.WriteLine("obj");
+    //        throw new NotImplementedException();
+    //    }
+    //    public override void EmitPop(Operand operand)
+    //    {
+    //        Console.WriteLine("obj");
+    //        throw new NotImplementedException();
+    //    }
+    //}
 }
