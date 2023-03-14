@@ -73,15 +73,15 @@ namespace GloryCompiler
                     if (leftNode.NodeType == NodeType.Variable)
                     {
                         Variable variable = ((VariableNode)leftNode).Variable;
-                        if ()
-                        {
-                            // Check local scope(s)
-                        }
-                        else 
-                        {
-                            // Global variables
-                            CodeOutput.EmitMov(Operand.ForDerefReg(OperandBase.E15, variable.Offset), Operand.Eax);
-                        }
+                        //if ()
+                        //{
+                        //    // Check local scope(s)
+                        //}
+                        //else 
+                        //{
+                        //    // Global variables
+                        //    CodeOutput.EmitMov(Operand.ForDerefReg(OperandBase.E15, variable.Offset), Operand.Eax);
+                        //}
                     }
                     break;
             }
