@@ -13,6 +13,7 @@ namespace GloryCompiler
         public List<Function> GlobalFunctions;
         public CodeOutput CodeOutput;
         public Parser Parser;
+        public ScratchRegisterPool ScratchRegisterPool = new ScratchRegisterPool();
 
         public CodeGenerator(Parser parser, CodeOutput codeOutput)
         {
@@ -28,7 +29,7 @@ namespace GloryCompiler
             for(int i = 0; i < Parser._GlobalFunctions.Count; i++)
             {
                 CompileFunction(Parser._GlobalFunctions[i]);
-                CompileStatements(Parser._GlobalFunctions[i].Code);
+                
             }
             // Compile global stuff
 
@@ -52,6 +53,8 @@ namespace GloryCompiler
         {
             switch (node.NodeType)
             {
+                // We want to add which scratch register the node is being stored in, to the node
+                // so a node can see which registers its children are stored in.
                 case NodeType.Plus:
                     CompileNode(((NonLeafNode)node).LeftPtr);
                     CodeOutput.EmitMov(Operand.Ebx, Operand.Eax);
@@ -92,6 +95,7 @@ namespace GloryCompiler
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
             CodeOutput.EmitLabel(function.Name);
             CompilePrologue(size);
+            CompileStatements(function.Code);
             CompileEpilogue(size);
         }
 
