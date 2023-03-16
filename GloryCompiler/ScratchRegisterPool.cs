@@ -24,7 +24,7 @@ namespace GloryCompiler
             availableRegistersBitmap = (1u << numScratchRegisters) - 1u; // init all registers as available
         }
 
-        public int AllocateScratchRegister()
+        public Operand AllocateScratchRegister()
         {
             int regNum = -1;
             for (int i = 0; i < numScratchRegisters; i++)
@@ -36,15 +36,29 @@ namespace GloryCompiler
                     break;
                 }
             }
-            return regNum;
+            return GetRegisterName(regNum);
         }
 
-        public void FreeScratchRegister(int regNum)
+        public void FreeScratchRegister(Operand reg)
         {
+            int regNum = reg.OpBase switch
+            {
+                OperandBase.Edi => 0,
+                OperandBase.Esi => 1,
+                OperandBase.Ecx => 2,
+                OperandBase.Ebx => 3,
+                OperandBase.Edx => 4,
+                _ => throw new Exception("Cannot free non-register")
+            };
+
             if (regNum >= 0 && regNum < numScratchRegisters)
             {
                 availableRegistersBitmap |= (1u << regNum); // mark the register as available
             }
+        }
+        public Operand GetRegisterName(int regNum)
+        {
+            return registerNames.ContainsKey(regNum) ? registerNames[regNum] : null;
         }
 
         #region Dont Use
@@ -77,10 +91,6 @@ namespace GloryCompiler
 
         #endregion
 
-        public Operand GetRegisterName(int regNum)
-        {
-            return registerNames.ContainsKey(regNum) ? registerNames[regNum] : null;
-        }
 
     }
 }

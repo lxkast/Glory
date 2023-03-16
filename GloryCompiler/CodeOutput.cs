@@ -8,13 +8,19 @@ namespace GloryCompiler
 {
     internal abstract class CodeOutput
     {
+        public abstract void StartTextSection();
+        public abstract void StartDataSection();
         public abstract void EmitPush(Operand operand);
         public abstract void EmitPop(Operand operand);
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
         public abstract void EmitMov(Operand operand1, Operand operand2);
+        public abstract void EmitCall(string func);
         public abstract void EmitRet();
         public abstract void EmitLabel(string name);
+        public abstract void EmitGlobal(string name);
+        public abstract void EmitExtern(string name);
+        public abstract void EmitData(string name);
     }
 
     internal class ASMOutput : CodeOutput
@@ -23,6 +29,22 @@ namespace GloryCompiler
         public ASMOutput(StreamWriter streamw)
         {
             sw = streamw;
+        }
+        public override void StartTextSection()
+        {
+            sw.WriteLine("section .text");
+        }
+        public override void StartDataSection()
+        {
+            sw.WriteLine("section .data");
+        }
+        public override void EmitGlobal(string name)
+        {
+            sw.WriteLine("global " + name);
+        }
+        public override void EmitData(string name)
+        {
+            sw.WriteLine("    " + name + ": dd 0");
         }
         public override void EmitPush(Operand operand)
         {
@@ -70,6 +92,11 @@ namespace GloryCompiler
             sw.WriteLine();
         }
 
+        public override void EmitCall(string func)
+        {
+            sw.WriteLine("    call " + func);
+        }
+
         public override void EmitRet()
         {
             sw.WriteLine("    ret");
@@ -79,6 +106,10 @@ namespace GloryCompiler
         {
             sw.WriteLine(name + ":");
         }
+        public override void EmitExtern(string name)
+        {
+            sw.WriteLine("extern " + name);
+        }
 
         private void EmitOperand(Operand operand)
         {
@@ -86,6 +117,8 @@ namespace GloryCompiler
                 sw.Write("[");
             if (operand.OpBase == OperandBase.Literal)
                 sw.Write(operand.LiteralValue);
+            else if (operand.OpBase == OperandBase.Label)
+                sw.Write(operand.LabelName);
             else
             {
                 sw.Write(operand.OpBase switch

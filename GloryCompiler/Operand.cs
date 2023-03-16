@@ -12,19 +12,23 @@ namespace GloryCompiler
         public OperandBase OpBase;
         public int Offset;
         public int LiteralValue;
+        public string LabelName;
 
-        private Operand(OperandBase opBase, bool isDereferenced, int offset, int literalValue)
+        private Operand(OperandBase opBase, bool isDereferenced, int offset, int literalValue, string labelName)
         {
             OpBase = opBase;
             IsDereferenced = isDereferenced;
             Offset = offset;
             LiteralValue = literalValue;
+            LabelName = labelName;
         }
 
-        public static Operand ForReg(OperandBase opBase) => new Operand(opBase, false, 0, 0);
-        public static Operand ForDerefReg(OperandBase opBase, int offset = 0) => new Operand(opBase, true, offset, 0);
-        public static Operand ForLiteral(int value) => new Operand(OperandBase.Literal, false, 0, value);
-        public static Operand ForDerefLiteral(int value) => new Operand(OperandBase.Literal, true, 0, value);
+        public static Operand ForReg(OperandBase opBase) => new Operand(opBase, false, 0, 0, null);
+        public static Operand ForDerefReg(OperandBase opBase, int offset = 0) => new Operand(opBase, true, offset, 0, null);
+        public static Operand ForLiteral(int value) => new Operand(OperandBase.Literal, false, 0, value, null);
+        public static Operand ForDerefLiteral(int value) => new Operand(OperandBase.Literal, true, 0, value, null);
+        public static Operand ForLabel(string value) => new Operand(OperandBase.Label, false, 0, 0, value);
+        public static Operand ForDerefLabel(string value) => new Operand(OperandBase.Label, true, 0, 0, value);
 
         public static readonly Operand Eax = ForReg(OperandBase.Eax);
         public static readonly Operand Ebx = ForReg(OperandBase.Ebx);
@@ -62,6 +66,7 @@ namespace GloryCompiler
         Edi,
         Esp,
         Ebp,
-        Literal
+        Literal,
+        Label
     }
 }

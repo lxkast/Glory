@@ -14,6 +14,7 @@ namespace GloryCompiler
         public CodeOutput CodeOutput;
         public Parser Parser;
         public ScratchRegisterPool ScratchRegisterPool = new ScratchRegisterPool();
+        Function _currentFunction;
 
         public CodeGenerator(Parser parser, CodeOutput codeOutput)
         {
@@ -24,7 +25,24 @@ namespace GloryCompiler
 
         public void Compile()
         {
+            // Declare variables and functions as global
+            CodeOutput.EmitGlobal("_main");
+            CodeOutput.EmitGlobal("PRINTINT");
+            CodeOutput.EmitExtern("_printf");
+            for (int i = 0; i < Parser.GlobalVariables.Count; i++)
+            {
+                CodeOutput.EmitGlobal("V" + Parser.GlobalVariables[i].Name);
+            }
+
             // Compile literals?
+            CodeOutput.StartDataSection();
+            CodeOutput.EmitData("PRINTINT");
+            for (int i = 0; i < Parser.GlobalVariables.Count; i++)
+            {
+                CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name);
+            }
+
+            CodeOutput.StartTextSection();
             // Compile each function
             for(int i = 0; i < Parser._GlobalFunctions.Count; i++)
             {
@@ -32,7 +50,9 @@ namespace GloryCompiler
                 
             }
             // Compile global stuff
-
+            CodeOutput.EmitLabel("_main");
+            CompileStatements(Parser.GlobalStatements);
+            CodeOutput.EmitRet();
 
         }
 
@@ -43,60 +63,100 @@ namespace GloryCompiler
                 switch (statements[i])
                 {
                     case SingleLineStatement single:
-                        CompileNode(single.Expression);
+                        CompileNode(single.Expression, null);
                         break;
                 }
             }
         }
 
-        public void CompileNode(Node node)
+        public void CompileNode(Node node, Operand destination)
         {
             switch (node.NodeType)
             {
                 // We want to add which scratch register the node is being stored in, to the node
                 // so a node can see which registers its children are stored in.
                 case NodeType.Plus:
-                    CompileNode(((NonLeafNode)node).LeftPtr);
-                    CodeOutput.EmitMov(Operand.Ebx, Operand.Eax);
-                    CompileNode(((NonLeafNode)node).RightPtr);
-                    CodeOutput.EmitAdd(Operand.Eax, Operand.Ebx);
+                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
+                    Operand addRight = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode(((NonLeafNode)node).RightPtr, addRight);
+                    CodeOutput.EmitAdd(destination, addRight);
+                    ScratchRegisterPool.FreeScratchRegister(addRight);
                     break;
                 case NodeType.Minus:
-                    CompileNode(((NonLeafNode)node).LeftPtr);
-                    CodeOutput.EmitMov(Operand.Ebx, Operand.Eax);
-                    CompileNode(((NonLeafNode)node).RightPtr);
-                    CodeOutput.EmitSub(Operand.Eax, Operand.Ebx);
+                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
+                    Operand minusRight = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode(((NonLeafNode)node).RightPtr, minusRight);
+                    CodeOutput.EmitAdd(destination, minusRight);
+                    ScratchRegisterPool.FreeScratchRegister(minusRight);
                     break;
                 case NodeType.NumberLiteral:
-                    CodeOutput.EmitMov(Operand.Eax, Operand.ForLiteral(((IntNode)node).Int));
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(((IntNode)node).Int));
                     break;
                 case NodeType.Assignment:
-                    CompileNode(((NonLeafNode)node).RightPtr);
+
                     Node leftNode = ((NonLeafNode)node).LeftPtr;
-                    if (leftNode.NodeType == NodeType.Variable)
+
+                    Operand varDestination = GetOperandForIdentifierAccess(leftNode);
+
+                    Operand assignRight = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode(((NonLeafNode)node).RightPtr, assignRight);
+                    CodeOutput.EmitMov(varDestination, assignRight);
+                    ScratchRegisterPool.FreeScratchRegister(assignRight);
+                    break;
+                case NodeType.Variable:
+                    Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
+                    CodeOutput.EmitMov(destination, varGetDestination);
+                    break;
+                case NodeType.NativeCall:
+                    NativeCallNode nativeCallNode = (NativeCallNode)node;
+                    switch (nativeCallNode.Function.Name)
                     {
-                        Variable variable = ((VariableNode)leftNode).Variable;
-                        //if ()
-                        //{
-                        //    // Check local scope(s)
-                        //}
-                        //else 
-                        //{
-                        //    // Global variables
-                        //    CodeOutput.EmitMov(Operand.ForDerefReg(OperandBase.E15, variable.Offset), Operand.Eax);
-                        //}
+                        case "printInt":
+                            Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                            CompileNode(nativeCallNode.Args[0], intermediateReg);
+
+                            CodeOutput.EmitMov(Operand.ForDerefLabel("PRINTINT"), intermediateReg);
+                            CodeOutput.EmitPush(Operand.ForLabel("PRINTINT"));
+                            ScratchRegisterPool.FreeScratchRegister(intermediateReg);
+
+                            CodeOutput.EmitCall("_printf");
+                            CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                            break;
                     }
                     break;
             }
         }
 
+        private Operand GetOperandForIdentifierAccess(Node leftNode)
+        {
+            Operand varDestination = null;
+            if (leftNode.NodeType == NodeType.Variable)
+            {
+                Variable variable = ((VariableNode)leftNode).Variable;
+                if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
+                {
+                    varDestination = Operand.ForDerefReg(OperandBase.Ebp, -variable.Offset);
+                }
+                else
+                {
+                    varDestination = Operand.ForDerefLabel("V" + variable.Name);
+                }
+            }
+
+            return varDestination;
+        }
+
         public void CompileFunction(Function function)
         {
+            _currentFunction = function;
+
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
-            CodeOutput.EmitLabel(function.Name);
+            CodeOutput.EmitLabel("F" + function.Name);
             CompilePrologue(size);
             CompileStatements(function.Code);
             CompileEpilogue(size);
+
+            _currentFunction = null;
         }
 
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
@@ -135,14 +195,14 @@ namespace GloryCompiler
         public void CompilePrologue(int size)
         {
             CodeOutput.EmitPush(Operand.Ebp);
-            CodeOutput.EmitMov(Operand.Esp, Operand.Ebp);
+            CodeOutput.EmitMov(Operand.Ebp, Operand.Esp);
             CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(size));
         }
 
         public void CompileEpilogue(int size)
         {
             CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(size));
-            CodeOutput.EmitMov(Operand.Ebp, Operand.Esp);
+            CodeOutput.EmitMov(Operand.Esp, Operand.Ebp);
             CodeOutput.EmitPop(Operand.Ebp);
             CodeOutput.EmitRet();
         }

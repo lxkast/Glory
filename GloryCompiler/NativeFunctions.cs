@@ -17,7 +17,12 @@ namespace GloryCompiler
         new NativeFunction(
             new List<Variable>(),
             "input",
-            new GloryType(GloryTypes.String))
+            new GloryType(GloryTypes.String)),
+        new NativeFunction(
+            new List<Variable>{new Variable(new GloryType(GloryTypes.Int) , "int") },
+            "printInt",
+            null
+            )
         };
     }
 }
