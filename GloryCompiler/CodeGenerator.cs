@@ -65,6 +65,9 @@ namespace GloryCompiler
                     case SingleLineStatement single:
                         CompileNode(single.Expression, null);
                         break;
+                    case ReturnStatement returnStatement:
+                        CompileNode(returnStatement.Expression, Operand.Eax);
+                        break;
                 }
             }
         }
@@ -107,6 +110,17 @@ namespace GloryCompiler
                     Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
                     CodeOutput.EmitMov(destination, varGetDestination);
                     break;
+                case NodeType.Call:
+                    CallNode callNode = (CallNode)node;
+                    int paramSize = SizeOfVariablesAndAssignOffsets(callNode.Function.Parameters);
+                    for (int i = callNode.Args.Count - 1; i >= 0; i--)
+                    {
+                        CodeOutput.EmitPush(Operand.ForLiteral(((IntNode)callNode.Args[i]).Int));
+                    }
+                    CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
+                    CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
+                    CodeOutput.EmitMov(destination, Operand.Eax);
+                    break;
                 case NodeType.NativeCall:
                     NativeCallNode nativeCallNode = (NativeCallNode)node;
                     switch (nativeCallNode.Function.Name)
@@ -116,11 +130,21 @@ namespace GloryCompiler
                             CompileNode(nativeCallNode.Args[0], intermediateReg);
 
                             CodeOutput.EmitMov(Operand.ForDerefLabel("PRINTINT"), intermediateReg);
+
+                            // CDECL calling convention messes with EAX, ECX and EDX
+                            CodeOutput.EmitPush(Operand.Eax);
+                            CodeOutput.EmitPush(Operand.Ecx);
+                            CodeOutput.EmitPush(Operand.Edx);
+
                             CodeOutput.EmitPush(Operand.ForLabel("PRINTINT"));
                             ScratchRegisterPool.FreeScratchRegister(intermediateReg);
-
                             CodeOutput.EmitCall("_printf");
                             CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+
+                            CodeOutput.EmitPop(Operand.Edx);
+                            CodeOutput.EmitPop(Operand.Ecx);
+                            CodeOutput.EmitPop(Operand.Eax);
+
                             break;
                     }
                     break;
@@ -151,8 +175,18 @@ namespace GloryCompiler
             _currentFunction = function;
 
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
+            int paramSize = SizeOfVariablesAndAssignOffsets(function.Parameters);
             CodeOutput.EmitLabel("F" + function.Name);
             CompilePrologue(size);
+            // Insert here: moving parameters into assigned stack space.
+            for (int i = 0; i < function.Parameters.Count; i++)
+            {
+                Variable parameter = function.Parameters[i];
+                Operand intermediateRegister = ScratchRegisterPool.AllocateScratchRegister();
+                CodeOutput.EmitMov(intermediateRegister, Operand.ForDerefReg(OperandBase.Ebp, parameter.Offset + 4));
+                CodeOutput.EmitMov(Operand.ForDerefReg(OperandBase.Ebp, -parameter.Offset), intermediateRegister);
+                ScratchRegisterPool.FreeScratchRegister(intermediateRegister);
+            }
             CompileStatements(function.Code);
             CompileEpilogue(size);
 
@@ -161,13 +195,12 @@ namespace GloryCompiler
 
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
         {
-            int size = 0;
+            int size = sizeOf(vars[0].Type);
             for (int i = 0; i < vars.Count; i++)
             {
                 vars[i].Offset = size;
                 size += sizeOf(vars[i].Type);
             }
-
             return size;
         }
 

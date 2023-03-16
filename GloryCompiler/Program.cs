@@ -8,10 +8,11 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-                int a()
-{
-return 0;
-}
+                int add (int a, int b, int c, int d, int e, int f, int g)
+                {
+                    return a +b + c + d + e + f + g;
+                }
+                printInt( add(65, 3, 1, 1, 2, 2, 4) );
                     
             ");
 
