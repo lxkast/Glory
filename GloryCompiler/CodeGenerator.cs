@@ -175,17 +175,17 @@ namespace GloryCompiler
             _currentFunction = function;
 
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
-            int paramSize = SizeOfVariablesAndAssignOffsets(function.Parameters);
+            int paramsize = SizeOfVariablesAndAssignOffsets(function.Parameters);
             CodeOutput.EmitLabel("F" + function.Name);
             CompilePrologue(size);
-            // Insert here: moving parameters into assigned stack space.
             for (int i = 0; i < function.Parameters.Count; i++)
             {
-                Variable parameter = function.Parameters[i];
-                Operand intermediateRegister = ScratchRegisterPool.AllocateScratchRegister();
-                CodeOutput.EmitMov(intermediateRegister, Operand.ForDerefReg(OperandBase.Ebp, parameter.Offset + 4));
-                CodeOutput.EmitMov(Operand.ForDerefReg(OperandBase.Ebp, -parameter.Offset), intermediateRegister);
-                ScratchRegisterPool.FreeScratchRegister(intermediateRegister);
+                function.Vars[i].Offset *= -1;
+                function.Vars[i].Offset -= 4;
+            }
+            for (int i = function.Parameters.Count; i < function.Vars.Count; i++)
+            {
+                function.Vars[i].Offset -= paramsize;
             }
             CompileStatements(function.Code);
             CompileEpilogue(size);
@@ -201,7 +201,7 @@ namespace GloryCompiler
                 vars[i].Offset = size;
                 size += sizeOf(vars[i].Type);
             }
-            return size;
+            return size - 4;
         }
 
         public int sizeOf(GloryType type)
