@@ -13,13 +13,15 @@ namespace GloryCompiler
         public List<Function> GlobalFunctions;
         public CodeOutput CodeOutput;
         public Parser Parser;
-        public ScratchRegisterPool ScratchRegisterPool = new ScratchRegisterPool();
+        public ScratchRegisterPool ScratchRegisterPool;
         Function _currentFunction;
+        public int stackFrameSize;
 
         public CodeGenerator(Parser parser, CodeOutput codeOutput)
         {
             Parser = parser;
             CodeOutput = codeOutput;
+            ScratchRegisterPool = new ScratchRegisterPool(codeOutput, this);
             Compile();
         }
 
@@ -27,7 +29,7 @@ namespace GloryCompiler
         {
             // Declare variables and functions as global
             CodeOutput.EmitGlobal("_main");
-            CodeOutput.EmitGlobal("PRINTINT");
+            CodeOutput.EmitGlobal("PRINTINTASSTRING");
             CodeOutput.EmitExtern("_printf");
             for (int i = 0; i < Parser.GlobalVariables.Count; i++)
             {
@@ -36,7 +38,6 @@ namespace GloryCompiler
 
             // Compile literals?
             CodeOutput.StartDataSection();
-            CodeOutput.EmitData("PRINTINT", null);
             CodeOutput.EmitData("PRINTINTASSTRING", "%d");
             for (int i = 0; i < Parser.GlobalVariables.Count; i++)
             {
@@ -122,23 +123,36 @@ namespace GloryCompiler
 
                     Operand assignRight = ScratchRegisterPool.AllocateScratchRegister();
                     CompileNode(((NonLeafNode)node).RightPtr, assignRight);
+                    
                     CodeOutput.EmitMov(varDestination, assignRight);
                     ScratchRegisterPool.FreeScratchRegister(assignRight);
                     break;
                 case NodeType.Variable:
                     Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
-                    CodeOutput.EmitMov(destination, varGetDestination);
+
+                    if (destination.IsDereferenced)
+                    {
+                        Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                        CodeOutput.EmitMov(intermediateReg, varGetDestination);
+                        CodeOutput.EmitMov(destination, intermediateReg);
+                    }
+                    else CodeOutput.EmitMov(destination, varGetDestination);
+
                     break;
                 case NodeType.Call:
                     CallNode callNode = (CallNode)node;
                     int paramSize = SizeOfVariablesAndAssignOffsets(callNode.Function.Parameters);
+
                     for (int i = callNode.Args.Count - 1; i >= 0; i--)
                     {
-                        Operand arg = ScratchRegisterPool.AllocateScratchRegister();
-                        CompileNode(callNode.Args[i], arg);
-                        CodeOutput.EmitPush(arg);
-                        ScratchRegisterPool.FreeScratchRegister(arg);
+                        //Operand arg = ScratchRegisterPool.AllocateScratchRegister();
+                        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4)); // TODO: Use the actual size of the parameter
+                        CompileNode(callNode.Args[i], Operand.ForDerefReg(OperandBase.Esp));
+                        stackFrameSize += 4;
+                        //CodeOutput.EmitPush(arg);
+                        //ScratchRegisterPool.FreeScratchRegister(arg);
                     }
+
                     CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
                     CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
                     CodeOutput.EmitMov(destination, Operand.Eax);
@@ -155,10 +169,13 @@ namespace GloryCompiler
                             CodeOutput.EmitPush(Operand.Ecx);
                             CodeOutput.EmitPush(Operand.Edx);
 
-                            Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
-                            CompileNode(nativeCallNode.Args[0], intermediateReg);
-                            CodeOutput.EmitPush(intermediateReg);
-                            ScratchRegisterPool.FreeScratchRegister(intermediateReg);
+                            stackFrameSize += 12;
+
+                            //Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4));
+                            CompileNode(nativeCallNode.Args[0], Operand.ForDerefReg(OperandBase.Esp));
+                            //CodeOutput.EmitPush(intermediateReg);
+                            //ScratchRegisterPool.FreeScratchRegister(intermediateReg);
 
                             CodeOutput.EmitPush(Operand.ForLabel("PRINTINTASSTRING"));
                             CodeOutput.EmitCall("_printf");
@@ -167,6 +184,8 @@ namespace GloryCompiler
                             CodeOutput.EmitPop(Operand.Edx);
                             CodeOutput.EmitPop(Operand.Ecx);
                             CodeOutput.EmitPop(Operand.Eax);
+
+                            stackFrameSize -= 12;
 
                             break;
                     }
@@ -212,7 +231,7 @@ namespace GloryCompiler
                        |--------------|
                        |return address|   <- the return address is automatically pushed when running a "call" instruction
                        |--------------|
-                       |   old ebp    |
+                       |   old ebp    |   
                        |--------------|
                        |      c       |   <- local variables
                        +--------------+
@@ -224,7 +243,10 @@ namespace GloryCompiler
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
             int paramsize = SizeOfVariablesAndAssignOffsets(function.Parameters);
             CodeOutput.EmitLabel("F" + function.Name);
+
             CompilePrologue(size);
+            stackFrameSize += size;
+
             for (int i = 0; i < function.Parameters.Count; i++)
             {
                 function.Vars[i].Offset *= -1;
@@ -235,7 +257,9 @@ namespace GloryCompiler
                 function.Vars[i].Offset -= paramsize;
             }
             CompileStatements(function.Code);
+
             CompileEpilogue(size);
+            stackFrameSize -= size;
 
             _currentFunction = null;
         }

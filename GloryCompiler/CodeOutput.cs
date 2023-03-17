@@ -72,6 +72,8 @@ namespace GloryCompiler
         {
             sw.Write("    ");
             sw.Write("mov ");
+            if (operand1.IsDereferenced)
+                sw.Write("DWORD ");
             EmitOperand(operand1);
             sw.Write(", ");
             EmitOperand(operand2);

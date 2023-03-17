@@ -11,6 +11,8 @@ namespace GloryCompiler
         private int numScratchRegisters = 5;
         private uint availableRegistersBitmap; // 32-bit bitmap
         public CodeOutput CodeOutput;
+        public CodeGenerator CodeGenerator;
+
         Dictionary<int, Operand> registerNames = new Dictionary<int, Operand> {
             { 0, Operand.Edi },
             { 1, Operand.Esi },
@@ -19,8 +21,10 @@ namespace GloryCompiler
             { 4, Operand.Edx }
         };
 
-        public ScratchRegisterPool()
+        public ScratchRegisterPool(CodeOutput codeOutput, CodeGenerator gen)
         {
+            CodeOutput = codeOutput;
+            CodeGenerator = gen;
             availableRegistersBitmap = (1u << numScratchRegisters) - 1u; // init all registers as available
         }
 
@@ -36,25 +40,34 @@ namespace GloryCompiler
                     break;
                 }
             }
+            if (regNum == -1)
+            {
+                CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4));
+                return Operand.ForDerefReg(OperandBase.Ebp, -CodeGenerator.stackFrameSize);
+            }
             return GetRegisterName(regNum);
         }
 
         public void FreeScratchRegister(Operand reg)
         {
-            int regNum = reg.OpBase switch
+            if (reg.Offset != 0)
+                CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+            else
             {
-                OperandBase.Edi => 0,
-                OperandBase.Esi => 1,
-                OperandBase.Ecx => 2,
-                OperandBase.Ebx => 3,
-                OperandBase.Edx => 4,
-                _ => throw new Exception("Cannot free non-register")
-            };
+                int regNum = reg.OpBase switch
+                {
+                    OperandBase.Edi => 0,
+                    OperandBase.Esi => 1,
+                    OperandBase.Ecx => 2,
+                    OperandBase.Ebx => 3,
+                    OperandBase.Edx => 4,
+                    _ => throw new Exception("Cannot free non-register")
+                };
 
-            
-            if (regNum >= 0 && regNum < numScratchRegisters)
-            {
-                availableRegistersBitmap |= (1u << regNum); // mark the register as available
+                if (regNum >= 0 && regNum < numScratchRegisters)
+                {
+                    availableRegistersBitmap |= (1u << regNum); // mark the register as available
+                }
             }
         }
         public bool IsRegisterOccupied(Operand reg)
