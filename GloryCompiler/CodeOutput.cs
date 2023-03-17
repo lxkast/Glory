@@ -14,6 +14,7 @@ namespace GloryCompiler
         public abstract void EmitPop(Operand operand);
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
+        public abstract void EmitMul(Operand operand);
         public abstract void EmitMov(Operand operand1, Operand operand2);
         public abstract void EmitCall(string func);
         public abstract void EmitRet();
@@ -89,6 +90,13 @@ namespace GloryCompiler
             EmitOperand(operand1);
             sw.Write(", ");
             EmitOperand(operand2);
+            sw.WriteLine();
+        }
+
+        public override void EmitMul(Operand operand)
+        {
+            sw.Write("    mul ");
+            EmitOperand(operand);
             sw.WriteLine();
         }
 

@@ -8,13 +8,11 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-                int addWithTen (int a, int b)
+                int multiply (int a, int b)
                 {
-                    int c = 10;
-                    
-                    return a + b + c;
+                    return a * b;
                 }
-                printInt( addWithTen(70,2));
+                printInt( multiply(7,10));
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));

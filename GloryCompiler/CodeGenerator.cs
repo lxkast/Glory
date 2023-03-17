@@ -92,6 +92,15 @@ namespace GloryCompiler
                     CodeOutput.EmitSub(destination, minusRight);
                     ScratchRegisterPool.FreeScratchRegister(minusRight);
                     break;
+                case NodeType.Multiply:
+                    CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
+                    Operand rightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), rightReg);
+                    CodeOutput.EmitMul(rightReg);
+                    ScratchRegisterPool.FreeScratchRegister(rightReg);
+                    if (destination != Operand.Eax)
+                        CodeOutput.EmitMov(destination, Operand.Eax);
+                    break;
                 case NodeType.NumberLiteral:
                     CodeOutput.EmitMov(destination, Operand.ForLiteral(((IntNode)node).Int));
                     break;

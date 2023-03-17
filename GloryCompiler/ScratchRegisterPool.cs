@@ -51,10 +51,29 @@ namespace GloryCompiler
                 _ => throw new Exception("Cannot free non-register")
             };
 
+            
             if (regNum >= 0 && regNum < numScratchRegisters)
             {
                 availableRegistersBitmap |= (1u << regNum); // mark the register as available
             }
+        }
+        public bool IsRegisterOccupied(Operand reg)
+        {
+            int regNum = reg.OpBase switch
+            {
+                OperandBase.Edi => 0,
+                OperandBase.Esi => 1,
+                OperandBase.Ecx => 2,
+                OperandBase.Ebx => 3,
+                OperandBase.Edx => 4,
+                _ => throw new Exception("Invalid register")
+            };
+            uint mask = 1u << regNum;
+            uint masked = mask & availableRegistersBitmap;
+            if (masked == 0)
+                return false;
+            else
+                return true;
         }
         public Operand GetRegisterName(int regNum)
         {
