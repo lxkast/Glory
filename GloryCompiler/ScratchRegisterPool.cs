@@ -84,9 +84,9 @@ namespace GloryCompiler
             uint mask = 1u << regNum;
             uint masked = mask & availableRegistersBitmap;
             if (masked == 0)
-                return false;
-            else
                 return true;
+            else
+                return false;
         }
         public Operand GetRegisterName(int regNum)
         {

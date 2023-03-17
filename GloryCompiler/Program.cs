@@ -8,19 +8,13 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-                #int[10] function()
-                #{
-                #    int[10] c;
-                #    return c;
-                #}
-                #int a = function()[2];
                 
                 int c = 135 + 45135;
                 int multiply (int a, int b)
                 {
                     return a * b;
                 }
-                printInt( multiply(c,5));
+                printInt( multiply(multiply(c,5) + 5 - 2 + 150 * 4 - 34 + 124 - 6435 * 12 * 12,2));
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));

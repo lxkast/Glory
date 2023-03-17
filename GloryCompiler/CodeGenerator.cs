@@ -98,7 +98,15 @@ namespace GloryCompiler
                     CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
                     Operand mulrightReg = ScratchRegisterPool.AllocateScratchRegister();
                     CompileNode((((NonLeafNode)node).RightPtr), mulrightReg);
-                    CodeOutput.EmitMul(mulrightReg);
+                    if (ScratchRegisterPool.IsRegisterOccupied(Operand.Edx))
+                    {
+                        CodeOutput.EmitPush(Operand.Edx);
+                        CodeOutput.EmitMul(mulrightReg);
+                        CodeOutput.EmitPop(Operand.Edx);
+                    }
+                    else
+                        CodeOutput.EmitMul(mulrightReg);
+                    
                     ScratchRegisterPool.FreeScratchRegister(mulrightReg);
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
