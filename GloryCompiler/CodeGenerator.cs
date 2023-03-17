@@ -89,7 +89,7 @@ namespace GloryCompiler
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
                     Operand minusRight = ScratchRegisterPool.AllocateScratchRegister();
                     CompileNode(((NonLeafNode)node).RightPtr, minusRight);
-                    CodeOutput.EmitAdd(destination, minusRight);
+                    CodeOutput.EmitSub(destination, minusRight);
                     ScratchRegisterPool.FreeScratchRegister(minusRight);
                     break;
                 case NodeType.NumberLiteral:
@@ -115,7 +115,10 @@ namespace GloryCompiler
                     int paramSize = SizeOfVariablesAndAssignOffsets(callNode.Function.Parameters);
                     for (int i = callNode.Args.Count - 1; i >= 0; i--)
                     {
-                        CodeOutput.EmitPush(Operand.ForLiteral(((IntNode)callNode.Args[i]).Int));
+                        Operand arg = ScratchRegisterPool.AllocateScratchRegister();
+                        CompileNode(callNode.Args[i], arg);
+                        CodeOutput.EmitPush(arg);
+                        ScratchRegisterPool.FreeScratchRegister(arg);
                     }
                     CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
                     CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
@@ -172,6 +175,30 @@ namespace GloryCompiler
 
         public void CompileFunction(Function function)
         {
+            /*Lets say we have an add function:
+              
+              int add(int a, int b)
+              {
+                   int c = a + b;
+                   return c;
+              }
+                 
+              The stack is created like this:
+              
+                       +--------------+
+                       |      b       |   <- argumemts are pushed onto the stack in reverse order
+                       |--------------|
+                       |      a       |
+                       |--------------|
+                       |return address|   <- the return address is automatically pushed when running a "call" instruction
+                       |--------------|
+                       |   old ebp    |
+                       |--------------|
+                       |      c       |   <- local variables
+                       +--------------+
+            */
+
+
             _currentFunction = function;
 
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
