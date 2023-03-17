@@ -36,10 +36,11 @@ namespace GloryCompiler
 
             // Compile literals?
             CodeOutput.StartDataSection();
-            CodeOutput.EmitData("PRINTINT");
+            CodeOutput.EmitData("PRINTINT", null);
+            CodeOutput.EmitData("PRINTINTASSTRING", "%d");
             for (int i = 0; i < Parser.GlobalVariables.Count; i++)
             {
-                CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name);
+                CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name, null);
             }
 
             CodeOutput.StartTextSection();
@@ -94,10 +95,19 @@ namespace GloryCompiler
                     break;
                 case NodeType.Multiply:
                     CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
-                    Operand rightReg = ScratchRegisterPool.AllocateScratchRegister();
-                    CompileNode((((NonLeafNode)node).RightPtr), rightReg);
-                    CodeOutput.EmitMul(rightReg);
-                    ScratchRegisterPool.FreeScratchRegister(rightReg);
+                    Operand mulrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), mulrightReg);
+                    CodeOutput.EmitMul(mulrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(mulrightReg);
+                    if (destination != Operand.Eax)
+                        CodeOutput.EmitMov(destination, Operand.Eax);
+                    break;
+                case NodeType.Divide:
+                    CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
+                    Operand dividerightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), dividerightReg);
+                    CodeOutput.EmitDiv(dividerightReg);
+                    ScratchRegisterPool.FreeScratchRegister(dividerightReg);
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
@@ -138,20 +148,21 @@ namespace GloryCompiler
                     switch (nativeCallNode.Function.Name)
                     {
                         case "printInt":
-                            Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
-                            CompileNode(nativeCallNode.Args[0], intermediateReg);
-
-                            CodeOutput.EmitMov(Operand.ForDerefLabel("PRINTINT"), intermediateReg);
+                            
 
                             // CDECL calling convention messes with EAX, ECX and EDX
                             CodeOutput.EmitPush(Operand.Eax);
                             CodeOutput.EmitPush(Operand.Ecx);
                             CodeOutput.EmitPush(Operand.Edx);
 
-                            CodeOutput.EmitPush(Operand.ForLabel("PRINTINT"));
+                            Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                            CompileNode(nativeCallNode.Args[0], intermediateReg);
+                            CodeOutput.EmitPush(intermediateReg);
                             ScratchRegisterPool.FreeScratchRegister(intermediateReg);
+
+                            CodeOutput.EmitPush(Operand.ForLabel("PRINTINTASSTRING"));
                             CodeOutput.EmitCall("_printf");
-                            CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                            CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(8));
 
                             CodeOutput.EmitPop(Operand.Edx);
                             CodeOutput.EmitPop(Operand.Ecx);

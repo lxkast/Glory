@@ -14,14 +14,16 @@ namespace GloryCompiler
         public abstract void EmitPop(Operand operand);
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
+
         public abstract void EmitMul(Operand operand);
+        public abstract void EmitDiv(Operand operand);
         public abstract void EmitMov(Operand operand1, Operand operand2);
         public abstract void EmitCall(string func);
         public abstract void EmitRet();
         public abstract void EmitLabel(string name);
         public abstract void EmitGlobal(string name);
         public abstract void EmitExtern(string name);
-        public abstract void EmitData(string name);
+        public abstract void EmitData(string name, string data);
     }
 
     internal class ASMOutput : CodeOutput
@@ -43,9 +45,12 @@ namespace GloryCompiler
         {
             sw.WriteLine("global " + name);
         }
-        public override void EmitData(string name)
+        public override void EmitData(string name, string str)
         {
-            sw.WriteLine("    " + name + ": dd 0");
+            if (str == null)
+                sw.WriteLine("    " + name + ": dd 0");
+            else
+                sw.WriteLine("    " + name + ": dd '" + str + "'");
         }
         public override void EmitPush(Operand operand)
         {
@@ -96,6 +101,12 @@ namespace GloryCompiler
         public override void EmitMul(Operand operand)
         {
             sw.Write("    mul ");
+            EmitOperand(operand);
+            sw.WriteLine();
+        }
+        public override void EmitDiv(Operand operand)
+        {
+            sw.Write("    div ");
             EmitOperand(operand);
             sw.WriteLine();
         }

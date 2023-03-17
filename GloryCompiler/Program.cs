@@ -10,9 +10,9 @@ namespace GloryCompiler
             Lexer lexer = new Lexer(@"
                 int multiply (int a, int b)
                 {
-                    return a * b;
+                    return a /  b;
                 }
-                printInt( multiply(7,10));
+                printInt( multiply(40,2) );
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));
@@ -36,4 +36,3 @@ namespace GloryCompiler
         }
     }
 }
-
