@@ -8,22 +8,29 @@ namespace GloryCompiler
 {
     internal abstract class CodeOutput
     {
+        public int LabelCount = 0;
         public abstract void StartTextSection();
         public abstract void StartDataSection();
         public abstract void EmitPush(Operand operand);
         public abstract void EmitPop(Operand operand);
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
-
         public abstract void EmitMul(Operand operand);
         public abstract void EmitDiv(Operand operand);
+        public abstract void EmitXor(Operand operand1, Operand operand2);
         public abstract void EmitMov(Operand operand1, Operand operand2);
+        public abstract void EmitCmp(Operand operand1, Operand operand2);
+        public abstract void EmitSete(Operand operand);
         public abstract void EmitCall(string func);
         public abstract void EmitRet();
         public abstract void EmitLabel(string name);
+        public abstract void EmitJe(string name);
+        public abstract void EmitJne(string name);
+        public abstract string ReserveNextLabel();
         public abstract void EmitGlobal(string name);
         public abstract void EmitExtern(string name);
         public abstract void EmitData(string name, string data);
+        public abstract void EmitJmp(string label);
     }
 
     internal class ASMOutput : CodeOutput
@@ -79,6 +86,15 @@ namespace GloryCompiler
             EmitOperand(operand2);
             sw.WriteLine();
         }
+        public override void EmitCmp(Operand operand1, Operand operand2)
+        {
+            sw.Write("    ");
+            sw.Write("cmp ");
+            EmitOperand(operand1);
+            sw.Write(", ");
+            EmitOperand(operand2);
+            sw.WriteLine();
+        }
 
         public override void EmitAdd(Operand operand1, Operand operand2)
         {
@@ -113,6 +129,16 @@ namespace GloryCompiler
             sw.WriteLine();
         }
 
+        public override void EmitXor(Operand operand1, Operand operand2)
+        {
+            sw.Write("    ");
+            sw.Write("xor ");
+            EmitOperand(operand1);
+            sw.Write(", ");
+            EmitOperand(operand2);
+            sw.WriteLine();
+        }
+
         public override void EmitCall(string func)
         {
             sw.WriteLine("    call " + func);
@@ -127,11 +153,36 @@ namespace GloryCompiler
         {
             sw.WriteLine(name + ":");
         }
+        public override string ReserveNextLabel()
+        {
+            LabelCount++;
+            return "L" + LabelCount.ToString();
+        }
+        public override void EmitJe(string labelName)
+        {
+            sw.WriteLine("    je " + labelName);
+        }
+        public override void EmitJne(string labelName)
+        {
+            sw.WriteLine("    jne " + labelName);
+        }
+
         public override void EmitExtern(string name)
         {
             sw.WriteLine("extern " + name);
         }
 
+        public override void EmitJmp(string label)
+        {
+            sw.WriteLine("    jmp " + label);
+        }
+
+        public override void EmitSete(Operand operand)
+        {
+            sw.Write("    sete ");
+            EmitOperand(operand);
+            sw.WriteLine();
+        }
         private void EmitOperand(Operand operand)
         {
             if (operand.IsDereferenced == true)
@@ -168,6 +219,7 @@ namespace GloryCompiler
                     OperandBase.Edi => "edi",
                     OperandBase.Esp => "esp",
                     OperandBase.Ebp => "ebp",
+                    OperandBase.Al => "al",
                     _ => throw new Exception("Unkown operand")
                 }) ;
                 if (operand.Offset < 0)

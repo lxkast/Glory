@@ -69,6 +69,28 @@ namespace GloryCompiler
                         break;
                     case ReturnStatement returnStatement:
                         CompileNode(returnStatement.Expression, Operand.Eax);
+                        CodeOutput.EmitJmp("EF" + _currentFunction.Name);
+                        break;
+                    case IfStatement ifStatement:
+                        Operand conditionResult = ScratchRegisterPool.AllocateScratchRegister();
+                        CompileNode(ifStatement.Condition, conditionResult);
+                        CodeOutput.EmitPush(Operand.ForLiteral(0)); 
+                        CodeOutput.EmitCmp(conditionResult, Operand.ForDerefReg(OperandBase.Esp)); // this WILL break if we run out of registers
+                        ScratchRegisterPool.FreeScratchRegister(conditionResult);
+                        string falseLabel = CodeOutput.ReserveNextLabel();
+                        CodeOutput.EmitJe(falseLabel);
+                        CompileStatements(ifStatement.Code);
+                        string doneLabel = CodeOutput.ReserveNextLabel();
+                        CodeOutput.EmitJmp(doneLabel);
+                        CodeOutput.EmitLabel(falseLabel);
+                        if (ifStatement.Else != null)
+                        {
+                        CompileStatements(ifStatement.Else.Code);
+
+                        }
+
+                        CodeOutput.EmitLabel(doneLabel);
+                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
                         break;
                 }
             }
@@ -122,6 +144,23 @@ namespace GloryCompiler
                     break;
                 case NodeType.NumberLiteral:
                     CodeOutput.EmitMov(destination, Operand.ForLiteral(((IntNode)node).Int));
+                    break;
+                case NodeType.BoolLiteral:
+                    if (((BoolNode)node).Bool == true)
+                        CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    else
+                        CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                    break;
+
+                case NodeType.DoubleEquals:
+                    CompileNode((((NonLeafNode)node).LeftPtr), destination);
+                    Operand doubleequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), doubleequalsrightReg);
+                    CodeOutput.EmitXor(Operand.Eax, Operand.Eax);
+                    CodeOutput.EmitCmp(destination, doubleequalsrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(doubleequalsrightReg);
+                    CodeOutput.EmitSete(Operand.Al);
+                    CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
                 case NodeType.Assignment:
 
@@ -313,6 +352,7 @@ namespace GloryCompiler
 
         public void CompileEpilogue(int size)
         {
+            CodeOutput.EmitLabel("EF" + _currentFunction.Name);
             CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(size));
             CodeOutput.EmitMov(Operand.Esp, Operand.Ebp);
             CodeOutput.EmitPop(Operand.Ebp);

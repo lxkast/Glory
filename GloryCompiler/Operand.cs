@@ -38,6 +38,7 @@ namespace GloryCompiler
         public static readonly Operand Edi = ForReg(OperandBase.Edi);
         public static readonly Operand Esp = ForReg(OperandBase.Esp);
         public static readonly Operand Ebp = ForReg(OperandBase.Ebp);
+        public static readonly Operand Al = ForReg(OperandBase.Al);
     }
 
     public enum OperandBase
@@ -66,6 +67,7 @@ namespace GloryCompiler
         Edi,
         Esp,
         Ebp,
+        Al,
         Literal,
         Label
     }

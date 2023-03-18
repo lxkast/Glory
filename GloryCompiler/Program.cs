@@ -8,13 +8,18 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-                
-                int c = 135 + 45135;
-                int multiply (int a, int b)
+            int fibonacci(int n)
+            {
+                if n == 1
                 {
-                    return a * b;
+                    return 1;
                 }
-                printInt( multiply(multiply(c,5) + 5 - 2 + 150 * 4 - 34 + 124 - 6435 * 12 * 12,2));
+                else
+                {
+                    return n + fibonacci(n-1);
+                }
+            }
+            printInt(fibonacci(3));
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));
