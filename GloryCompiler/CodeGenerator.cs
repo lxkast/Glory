@@ -86,10 +86,26 @@ namespace GloryCompiler
                         if (ifStatement.Else != null)
                         {
                         CompileStatements(ifStatement.Else.Code);
-
                         }
-
                         CodeOutput.EmitLabel(doneLabel);
+                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                        break;
+                    case WhileStatement whileStatement:
+                        string topLabel = CodeOutput.ReserveNextLabel();
+                        string whiledoneLabel = CodeOutput.ReserveNextLabel();
+                        CodeOutput.EmitLabel(topLabel);
+                        Operand whileconditionResult = ScratchRegisterPool.AllocateScratchRegister();
+                        CompileNode(whileStatement.Condition, whileconditionResult);
+                        CodeOutput.EmitPush(Operand.ForLiteral(0));
+                        CodeOutput.EmitCmp(whileconditionResult, Operand.ForDerefReg(OperandBase.Esp)); // this WILL break if we run out of registers
+                        ScratchRegisterPool.FreeScratchRegister(whileconditionResult);
+                        CodeOutput.EmitJe(whiledoneLabel);
+                        if (whileStatement.Code != null)
+                        {
+                            CompileStatements(whileStatement.Code);
+                        }
+                        CodeOutput.EmitJmp(topLabel);
+                        CodeOutput.EmitLabel(whiledoneLabel);
                         CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
                         break;
                 }
@@ -151,7 +167,7 @@ namespace GloryCompiler
                     else
                         CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
                     break;
-
+                // note for alex: put all of these into a function or something (maybe not double equals i did that one differently when i started)
                 case NodeType.DoubleEquals:
                     CompileNode((((NonLeafNode)node).LeftPtr), destination);
                     Operand doubleequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
@@ -161,6 +177,66 @@ namespace GloryCompiler
                     ScratchRegisterPool.FreeScratchRegister(doubleequalsrightReg);
                     CodeOutput.EmitSete(Operand.Al);
                     CodeOutput.EmitMov(destination, Operand.Eax);
+                    break;
+                case NodeType.LessThan:
+                    CompileNode((((NonLeafNode)node).LeftPtr), destination);
+                    Operand lessthanrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), lessthanrightReg);
+                    CodeOutput.EmitCmp(destination, lessthanrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(lessthanrightReg);
+                    string jlLabel = CodeOutput.ReserveNextLabel();
+                    string jlDoneLabel = CodeOutput.ReserveNextLabel();
+                    CodeOutput.EmitJl(jlLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                    CodeOutput.EmitJmp(jlDoneLabel);
+                    CodeOutput.EmitLabel(jlLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitLabel(jlDoneLabel);
+                    break;
+                case NodeType.LessThanEquals:
+                    CompileNode((((NonLeafNode)node).LeftPtr), destination);
+                    Operand lessthanequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), lessthanequalsrightReg);
+                    CodeOutput.EmitCmp(destination, lessthanequalsrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(lessthanequalsrightReg);
+                    string jleLabel = CodeOutput.ReserveNextLabel();
+                    string jleDoneLabel = CodeOutput.ReserveNextLabel();
+                    CodeOutput.EmitJle(jleLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                    CodeOutput.EmitJmp(jleDoneLabel);
+                    CodeOutput.EmitLabel(jleLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitLabel(jleDoneLabel);
+                    break;
+                case NodeType.GreaterThan:
+                    CompileNode((((NonLeafNode)node).LeftPtr), destination);
+                    Operand greaterthanrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), greaterthanrightReg);
+                    CodeOutput.EmitCmp(destination, greaterthanrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(greaterthanrightReg);
+                    string jgLabel = CodeOutput.ReserveNextLabel();
+                    string jgDoneLabel = CodeOutput.ReserveNextLabel();
+                    CodeOutput.EmitJg(jgLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                    CodeOutput.EmitJmp(jgDoneLabel);
+                    CodeOutput.EmitLabel(jgLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitLabel(jgDoneLabel);
+                    break;
+                case NodeType.GreaterThanEquals:
+                    CompileNode((((NonLeafNode)node).LeftPtr), destination);
+                    Operand greaterthanequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), greaterthanequalsrightReg);
+                    CodeOutput.EmitCmp(destination, greaterthanequalsrightReg);
+                    ScratchRegisterPool.FreeScratchRegister(greaterthanequalsrightReg);
+                    string jgeLabel = CodeOutput.ReserveNextLabel();
+                    string jgeDoneLabel = CodeOutput.ReserveNextLabel();
+                    CodeOutput.EmitJge(jgeLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                    CodeOutput.EmitJmp(jgeDoneLabel);
+                    CodeOutput.EmitLabel(jgeLabel);
+                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitLabel(jgeDoneLabel);
                     break;
                 case NodeType.Assignment:
 

@@ -26,6 +26,10 @@ namespace GloryCompiler
         public abstract void EmitLabel(string name);
         public abstract void EmitJe(string name);
         public abstract void EmitJne(string name);
+        public abstract void EmitJl(string name);
+        public abstract void EmitJle(string name);
+        public abstract void EmitJg(string name);
+        public abstract void EmitJge(string name);
         public abstract string ReserveNextLabel();
         public abstract void EmitGlobal(string name);
         public abstract void EmitExtern(string name);
@@ -166,7 +170,22 @@ namespace GloryCompiler
         {
             sw.WriteLine("    jne " + labelName);
         }
-
+        public override void EmitJl(string labelName)
+        {
+            sw.WriteLine("    jl " + labelName);
+        }
+        public override void EmitJle(string labelName)
+        {
+            sw.WriteLine("    jle " + labelName);
+        }
+        public override void EmitJg(string labelName)
+        {
+            sw.WriteLine("    jg " + labelName);
+        }
+        public override void EmitJge(string labelName)
+        {
+            sw.WriteLine("    jge " + labelName);
+        }
         public override void EmitExtern(string name)
         {
             sw.WriteLine("extern " + name);
