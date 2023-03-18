@@ -150,13 +150,38 @@ namespace GloryCompiler
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
                 case NodeType.Divide:
+                case NodeType.Div:
                     CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
                     Operand dividerightReg = ScratchRegisterPool.AllocateScratchRegister();
                     CompileNode((((NonLeafNode)node).RightPtr), dividerightReg);
+                    CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
                     CodeOutput.EmitDiv(dividerightReg);
                     ScratchRegisterPool.FreeScratchRegister(dividerightReg);
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
+                    break;
+                case NodeType.Mod:
+                    CompileNode((((NonLeafNode)node).LeftPtr), Operand.Eax);
+                    Operand moddividerightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    CompileNode((((NonLeafNode)node).RightPtr), moddividerightReg);
+                    if (moddividerightReg == Operand.Edx)
+                    {
+                        CodeOutput.EmitPush(Operand.Edx);
+                        ScratchRegisterPool.FreeScratchRegister(moddividerightReg);
+                        CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
+                        CodeOutput.EmitDiv(Operand.ForDerefReg(OperandBase.Esp, 0));
+                        if (destination != Operand.Edx)
+                            CodeOutput.EmitMov(destination, Operand.Edx);
+                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                    }
+                    else
+                    {
+                        CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
+                        CodeOutput.EmitDiv(moddividerightReg);
+                        ScratchRegisterPool.FreeScratchRegister(moddividerightReg);
+                        if (destination != Operand.Edx)
+                            CodeOutput.EmitMov(destination, Operand.Edx);
+                    }
                     break;
                 case NodeType.NumberLiteral:
                     CodeOutput.EmitMov(destination, Operand.ForLiteral(((IntNode)node).Int));
