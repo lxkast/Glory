@@ -890,10 +890,13 @@ namespace GloryCompiler
 
         public bool VerifyReturn(List<Statement> statements)
         {
+            int index = -1;
             foreach (Statement statement in statements)
             {
+                index++;
                 if (statement is ReturnStatement)
                 {
+                    statements.RemoveRange(index +1, statements.Count - index -1);
                     return true;
                 }
                 else if (statement is IfStatement ifStatement)
@@ -904,7 +907,11 @@ namespace GloryCompiler
                         bool elseBranchBranches = VerifyReturn(ifStatement.Else.Code);
 
                         // If both the main *and* else branches return, this block clearly always returns.
-                        if (mainBranchReturns && elseBranchBranches) return true;
+                        if (mainBranchReturns && elseBranchBranches)
+                        {
+                            statements.RemoveRange(index + 1, statements.Count - index - 1);
+                            return true;
+                        }
                     }
                 }
                 else if (statement is WhileStatement whileStatement)

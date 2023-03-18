@@ -10,16 +10,19 @@ namespace GloryCompiler
             Lexer lexer = new Lexer(@"
             int function()
             {
-                int a = 25;
+                int a = -1;
                 if a < 0
                 {
-                    return -1;
+                    return 100;
+                    printInt(5243);
+                    printInt(32);
                 }
                 else
                 {
                     return 120;
                 }
-                printInt(5243);
+                printInt(189349093);
+                return 9999;
             }
             printInt(function());
             ");
