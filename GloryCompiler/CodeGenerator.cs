@@ -383,6 +383,27 @@ namespace GloryCompiler
                        |--------------|
                        |      c       |   <- local variables
                        +--------------+
+
+                        +--------------+
+                        |      b       |
+                        |--------------|
+                        |      a       | 
+                        |--------------|
+                        |return address|  <- stack pointer (ESP register)
+                        |--------------|
+                        |   old ebp    |  
+                        |--------------|
+                        |      c       |  
+                        +--------------+
+
+
+
+
+
+
+
+
+                        
             */
 
 
@@ -414,6 +435,7 @@ namespace GloryCompiler
 
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
         {
+            if (vars.Count == 0) return 0;
             int size = sizeOf(vars[0].Type);
             for (int i = 0; i < vars.Count; i++)
             {

@@ -8,8 +8,20 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-            int n = 80;
-            printInt(n*3%52);
+            int function()
+            {
+                int a = 25;
+                if a < 0
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 120;
+                }
+                printInt(5243);
+            }
+            printInt(function());
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));
