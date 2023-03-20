@@ -74,8 +74,7 @@ namespace GloryCompiler
                     case IfStatement ifStatement:
                         Operand conditionResult = ScratchRegisterPool.AllocateScratchRegister();
                         CompileNode(ifStatement.Condition, conditionResult);
-                        CodeOutput.EmitPush(Operand.ForLiteral(0)); 
-                        CodeOutput.EmitCmp(conditionResult, Operand.ForDerefReg(OperandBase.Esp)); // this WILL break if we run out of registers
+                        CodeOutput.EmitCmp(conditionResult, Operand.ForLiteral(0));
                         ScratchRegisterPool.FreeScratchRegister(conditionResult);
                         string falseLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitJe(falseLabel);
@@ -88,7 +87,6 @@ namespace GloryCompiler
                         CompileStatements(ifStatement.Else.Code);
                         }
                         CodeOutput.EmitLabel(doneLabel);
-                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
                         break;
                     case WhileStatement whileStatement:
                         string topLabel = CodeOutput.ReserveNextLabel();
@@ -146,6 +144,9 @@ namespace GloryCompiler
                         CodeOutput.EmitMul(mulrightReg);
                     
                     ScratchRegisterPool.FreeScratchRegister(mulrightReg);
+
+                    // The reason the result is 1 - the "mul" for some reason isn't going into eax.
+                    // Or at least, its result isn't sticking around in eax for some reason...
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
@@ -283,20 +284,21 @@ namespace GloryCompiler
                         Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
                         CodeOutput.EmitMov(intermediateReg, varGetDestination);
                         CodeOutput.EmitMov(destination, intermediateReg);
+                        ScratchRegisterPool.FreeScratchRegister(intermediateReg);
                     }
                     else CodeOutput.EmitMov(destination, varGetDestination);
 
                     break;
                 case NodeType.Call:
                     CallNode callNode = (CallNode)node;
-                    int paramSize = SizeOfVariablesAndAssignOffsets(callNode.Function.Parameters);
+                    int paramSize = SizeOfVariables(callNode.Function.Parameters);
 
                     for (int i = callNode.Args.Count - 1; i >= 0; i--)
                     {
                         //Operand arg = ScratchRegisterPool.AllocateScratchRegister();
                         CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4)); // TODO: Use the actual size of the parameter
-                        CompileNode(callNode.Args[i], Operand.ForDerefReg(OperandBase.Esp));
                         stackFrameSize += 4;
+                        CompileNode(callNode.Args[i], Operand.ForDerefReg(OperandBase.Esp));
                         //CodeOutput.EmitPush(arg);
                         //ScratchRegisterPool.FreeScratchRegister(arg);
                     }
@@ -413,7 +415,7 @@ namespace GloryCompiler
             int paramsize = SizeOfVariablesAndAssignOffsets(function.Parameters);
             CodeOutput.EmitLabel("F" + function.Name);
 
-            CompilePrologue(size);
+            CompilePrologue(size - paramsize);
             stackFrameSize += size;
 
             for (int i = 0; i < function.Parameters.Count; i++)
@@ -427,10 +429,18 @@ namespace GloryCompiler
             }
             CompileStatements(function.Code);
 
-            CompileEpilogue(size);
+            CompileEpilogue(size - paramsize);
             stackFrameSize -= size;
 
             _currentFunction = null;
+        }
+
+        private int SizeOfVariables(List<Variable> vars)
+        {
+            int size = 0;
+            for (int i = 0; i < vars.Count; i++)
+                size += sizeOf(vars[i].Type);
+            return size;
         }
 
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
