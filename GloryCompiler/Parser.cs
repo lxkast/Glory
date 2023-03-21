@@ -609,9 +609,37 @@ namespace GloryCompiler
                 _currentIndex++;
             }
 
-            Node currentTree = ParseCall();
+            Node currentTree = ParseIndexer();
             if (negateCount % 2 == 1)
                 currentTree = new NonLeafNode(NodeType.Multiply, currentTree, new IntNode(-1));
+
+            return currentTree;
+        }
+        public Node ParseIndexer()
+        {
+            Node currentTree = ParseCall();
+
+            while (ReadToken().Type == TokenType.OpenSquare)
+            {
+                // Check base of indexing is valid
+                if (VerifyAndGetTypeOf(currentTree).Type is not GloryTypes.Array and not GloryTypes.String and not GloryTypes.List)
+                    throw new Exception("Can only index arrays, lists or strings");
+
+                _currentIndex++;
+
+                // Parse index position
+                Node index = ParseExpression();
+                if (VerifyAndGetTypeOf(index).Type != GloryTypes.Int)
+                    throw new Exception("Array index must be an integer");
+
+                // Create node
+                currentTree = new IndexNode(currentTree, index);
+
+                // Handle "]"
+                if (ReadToken().Type != TokenType.CloseSquare)
+                    throw new Exception("Expected ]");
+                _currentIndex++;
+            }
 
             return currentTree;
         }
@@ -687,37 +715,10 @@ namespace GloryCompiler
             }
             else
             {
-                return ParseIndexer();
+                return ParseUnary();
             }
         }
-        public Node ParseIndexer()
-        {
-            Node currentTree = ParseUnary();
-
-            while (ReadToken().Type == TokenType.OpenSquare)
-            {
-                // Check base of indexing is valid
-                if (VerifyAndGetTypeOf(currentTree).Type is not GloryTypes.Array and not GloryTypes.String and not GloryTypes.List)
-                    throw new Exception("Can only index arrays, lists or strings");
-
-                _currentIndex++;
-
-                // Parse index position
-                Node index = ParseExpression();
-                if (VerifyAndGetTypeOf(index).Type != GloryTypes.Int)
-                    throw new Exception("Array index must be an integer");
-
-                // Create node
-                currentTree = new IndexNode(currentTree, index);
-
-                // Handle "]"
-                if (ReadToken().Type != TokenType.CloseSquare)
-                    throw new Exception("Expected ]");
-                _currentIndex++;
-            }
-
-            return currentTree;
-        }
+        
 
         public Node ParseUnary()
         {

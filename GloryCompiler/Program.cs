@@ -10,16 +10,24 @@ namespace GloryCompiler
             Lexer lexer = new Lexer(@"
             int factorial(int n)
             {
-                if n == 1
+                if (n == 1)
                 {
                     return 1;
                 }
                 else
                 {
-                    return  n * factorial(n-1);
+                    return n * factorial(n-1);
                 }
             }
-            printInt(factorial(4));
+
+            int a = 0;
+            while a < 10
+            {
+                printInt(factorial(a)); 
+                a+=1;
+            }
+            
+
             ");
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));

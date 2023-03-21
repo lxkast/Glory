@@ -144,9 +144,6 @@ namespace GloryCompiler
                         CodeOutput.EmitMul(mulrightReg);
                     
                     ScratchRegisterPool.FreeScratchRegister(mulrightReg);
-
-                    // The reason the result is 1 - the "mul" for some reason isn't going into eax.
-                    // Or at least, its result isn't sticking around in eax for some reason...
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
@@ -480,6 +477,11 @@ namespace GloryCompiler
             stackFrameSize -= size;
 
             _currentFunction = null;
+        }
+
+        private void CompileValueMove(GloryType type, Operand src, Operand dest)
+        {
+
         }
 
         private int SizeOfVariables(List<Variable> vars)
