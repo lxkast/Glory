@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Generation
 {
     internal class ScratchRegisterPool
     {
@@ -33,7 +33,7 @@ namespace GloryCompiler
             int regNum = -1;
             for (int i = 0; i < numScratchRegisters; i++)
             {
-                if ((availableRegistersBitmap & (1u << i)) != 0)
+                if ((availableRegistersBitmap & 1u << i) != 0)
                 {
                     regNum = i;
                     availableRegistersBitmap &= ~(1u << i); // mark the register as in use
@@ -66,7 +66,7 @@ namespace GloryCompiler
 
                 if (regNum >= 0 && regNum < numScratchRegisters)
                 {
-                    availableRegistersBitmap |= (1u << regNum); // mark the register as available
+                    availableRegistersBitmap |= 1u << regNum; // mark the register as available
                 }
             }
         }
@@ -97,9 +97,9 @@ namespace GloryCompiler
         public uint PushAllocatedScratchRegisters()
         {
             uint savedBitmap = availableRegistersBitmap;
-            for (int i = 0; i<numScratchRegisters ; i++)
+            for (int i = 0; i < numScratchRegisters; i++)
             {
-                if ((availableRegistersBitmap & (1u << i)) == 0)
+                if ((availableRegistersBitmap & 1u << i) == 0)
                 {
                     {
                         CodeOutput.EmitPush(registerNames[i]);
@@ -113,7 +113,7 @@ namespace GloryCompiler
             int currentRegister = numScratchRegisters - 1;
             while (currentRegister >= 0)
             {
-                if ((availableRegistersBitmap & (1u << currentRegister)) == 0)
+                if ((availableRegistersBitmap & 1u << currentRegister) == 0)
                 {
                     CodeOutput.EmitPop(registerNames[currentRegister]);
                 }

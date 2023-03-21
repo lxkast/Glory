@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Representation
 {
     internal class Statement
     {
-        
+
     }
     internal class SingleLineStatement : Statement
     {

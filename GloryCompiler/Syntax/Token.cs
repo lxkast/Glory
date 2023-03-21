@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Syntax
 {
     internal class Token
     {
@@ -39,45 +39,45 @@ namespace GloryCompiler
     public enum TokenType
     {
         // Operators:
-        Plus, 
-        Minus, 
-        Times, 
-        Divide, 
-        LessThan, 
-        LessThanEquals, 
-        Equals, 
-        DoubleEquals, 
-        GreaterThan, 
-        GreaterThanEquals, 
-        Index, 
-        Mod, 
+        Plus,
+        Minus,
+        Times,
+        Divide,
+        LessThan,
+        LessThanEquals,
+        Equals,
+        DoubleEquals,
+        GreaterThan,
+        GreaterThanEquals,
+        Index,
+        Mod,
         Div,
         Comma,
 
         // Types:
-        IntType, 
-        StringType, 
-        FloatType, 
-        BoolType, 
-        Blank, 
+        IntType,
+        StringType,
+        FloatType,
+        BoolType,
+        Blank,
 
         // General Structure:
-        Semicolon, 
+        Semicolon,
         OpenBracket,
-        CloseBracket, 
-        OpenCurly, 
-        CloseCurly, 
+        CloseBracket,
+        OpenCurly,
+        CloseCurly,
         OpenSquare,
         CloseSquare,
 
         // Literals:
-        StringLiteral, 
-        NumberLiteral, 
+        StringLiteral,
+        NumberLiteral,
         BoolLiteral,
         Identifier,
 
         // Keywords:
-        If, 
+        If,
         ElseIf,
         Else,
         While,

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Syntax
 {
     internal class Lexer
     {
@@ -265,7 +265,7 @@ namespace GloryCompiler
                 currentIdentifier = currentIdentifier + GetCurrentChar();
                 _currentPos++;
             }
-            
+
             if (currentIdentifier != "")
             {
                 _currentPos--; // The last letter we encountered was not part of the identifier, so make sure it doesn't get skipped.

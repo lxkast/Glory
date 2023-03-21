@@ -1,5 +1,7 @@
 ﻿using System;
-    
+using GloryCompiler.Generation;
+using GloryCompiler.Syntax;
+
 namespace GloryCompiler
 {
     class Program
