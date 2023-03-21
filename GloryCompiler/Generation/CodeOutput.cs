@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Generation
 {
     internal abstract class CodeOutput
     {
@@ -222,8 +222,8 @@ namespace GloryCompiler
                     OperandBase.Rdi => "rdi",
                     OperandBase.Rsp => "rsp",
                     OperandBase.Rbp => "rbp",
-                    OperandBase.R8  => "r8",
-                    OperandBase.R9  => "r9",
+                    OperandBase.R8 => "r8",
+                    OperandBase.R9 => "r9",
                     OperandBase.R10 => "r10",
                     OperandBase.R11 => "r11",
                     OperandBase.R12 => "r12",
@@ -240,7 +240,7 @@ namespace GloryCompiler
                     OperandBase.Ebp => "ebp",
                     OperandBase.Al => "al",
                     _ => throw new Exception("Unkown operand")
-                }) ;
+                });
                 if (operand.Offset < 0)
                 {
                     sw.Write("-" + -operand.Offset);

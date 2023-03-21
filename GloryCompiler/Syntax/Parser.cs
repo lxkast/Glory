@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GloryCompiler.Representation;
 
-namespace GloryCompiler
+namespace GloryCompiler.Syntax
 {
     internal class Parser
     {
@@ -365,7 +366,7 @@ namespace GloryCompiler
                     TokenType.Divide => NodeType.Divide,
                     _ => NodeType.Null
                 };
-                
+
                 _currentIndex++;
 
                 // Expect equals
@@ -426,7 +427,7 @@ namespace GloryCompiler
 
             // Parse the condition
             Node condition = ParseExpression();
-            if (VerifyAndGetTypeOf(condition).Type != GloryTypes.Bool) 
+            if (VerifyAndGetTypeOf(condition).Type != GloryTypes.Bool)
                 throw new Exception("Expected expression of type 'bool' for if condition.");
 
             // Look for the {
@@ -450,7 +451,7 @@ namespace GloryCompiler
                 throw new Exception("Expected }");
 
             // Handle elses
-            if (ReadToken().Type == TokenType.ElseIf)     
+            if (ReadToken().Type == TokenType.ElseIf)
                 newIf.Else = ParseElseIf();
             else if (ReadToken().Type == TokenType.Else)
                 newIf.Else = ParseElse();
@@ -497,7 +498,7 @@ namespace GloryCompiler
             Node currentTree = ParseCompare();
             return currentTree;
         }
-        
+
         public Node ParseCompare()
         {
             Node currentTree = ParseAdditive();
@@ -541,7 +542,7 @@ namespace GloryCompiler
                 else
                 {
                     _currentIndex++;
-                    Node nextTerm = ParseDivide();  
+                    Node nextTerm = ParseDivide();
                     currentTree = new NonLeafNode(NodeType.Minus, currentTree, nextTerm);
                 }
             }
@@ -668,7 +669,7 @@ namespace GloryCompiler
                 while (ReadToken().Type != TokenType.CloseBracket)
                 {
                     arguments.Add(ParseExpression());
-                    
+
                     if (ReadToken().Type == TokenType.CloseBracket) break;
 
                     if (ReadToken().Type == TokenType.Comma)
@@ -682,7 +683,7 @@ namespace GloryCompiler
                 // For native functions
                 if (func == null)
                 {
-                    if (arguments.Count != nativeFunc.Parameters.Count) 
+                    if (arguments.Count != nativeFunc.Parameters.Count)
                         throw new Exception("Function " + name + " does not accept " + arguments.Count + " arguments.");
 
                     for (int i = 0; i < arguments.Count; i++)
@@ -718,7 +719,7 @@ namespace GloryCompiler
                 return ParseUnary();
             }
         }
-        
+
 
         public Node ParseUnary()
         {
@@ -795,7 +796,7 @@ namespace GloryCompiler
         private NativeFunction TryFindNativeFunction(string name)
         {
             NativeFunctions nativeFunctinons = new NativeFunctions();
-            for (int i = 0; i <  nativeFunctinons.nativeFunctions.Count(); i++)
+            for (int i = 0; i < nativeFunctinons.nativeFunctions.Count(); i++)
             {
                 if (nativeFunctinons.nativeFunctions[i].Name == name)
                     return nativeFunctinons.nativeFunctions[i];
@@ -897,7 +898,7 @@ namespace GloryCompiler
                 index++;
                 if (statement is ReturnStatement)
                 {
-                    statements.RemoveRange(index +1, statements.Count - index -1);
+                    statements.RemoveRange(index + 1, statements.Count - index - 1);
                     return true;
                 }
                 else if (statement is IfStatement ifStatement)

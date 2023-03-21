@@ -1,5 +1,7 @@
 ﻿using System;
-    
+using GloryCompiler.Generation;
+using GloryCompiler.Syntax;
+
 namespace GloryCompiler
 {
     class Program
@@ -20,12 +22,7 @@ namespace GloryCompiler
                 }
             }
 
-            int a = 0;
-            while a < 10
-            {
-                printInt(factorial(a)); 
-                a+=1;
-            }
+            printInt(factorial(4));
             
 
             ");

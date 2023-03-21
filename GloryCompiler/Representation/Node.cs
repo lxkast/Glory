@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GloryCompiler
+namespace GloryCompiler.Representation
 {
     internal class Node
     {
         public NodeType NodeType;
-        
+
         public Node(NodeType nodeType)
         {
             NodeType = nodeType;
