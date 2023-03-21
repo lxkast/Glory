@@ -281,10 +281,10 @@ namespace GloryCompiler
 
                     if (destination.IsDereferenced)
                     {
-                        Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
-                        CodeOutput.EmitMov(intermediateReg, varGetDestination);
-                        CodeOutput.EmitMov(destination, intermediateReg);
-                        ScratchRegisterPool.FreeScratchRegister(intermediateReg);
+                        Operand vintermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                        CodeOutput.EmitMov(vintermediateReg, varGetDestination);
+                        CodeOutput.EmitMov(destination, vintermediateReg);
+                        ScratchRegisterPool.FreeScratchRegister(vintermediateReg);
                     }
                     else CodeOutput.EmitMov(destination, varGetDestination);
 
@@ -292,6 +292,31 @@ namespace GloryCompiler
                 case NodeType.Call:
                     CallNode callNode = (CallNode)node;
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
+                    Operand intermediateReg = null;
+                    if (destination.IsDereferenced && destination.OpBase is OperandBase.Esp or OperandBase.Ebp)
+                        intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                    // Refactor please
+                    if (destination != Operand.Eax) // Eax isn't a scratch register
+                        CodeOutput.EmitPush(Operand.Eax);
+                    if (destination != Operand.Esi && intermediateReg != Operand.Esi)
+                        CodeOutput.EmitPush(Operand.Esi);
+                    if (destination != Operand.Edi && intermediateReg != Operand.Edi)
+                        CodeOutput.EmitPush(Operand.Edi);
+                    if (destination != Operand.Ecx && intermediateReg != Operand.Ecx)
+                        CodeOutput.EmitPush(Operand.Ecx);
+                    if (destination != Operand.Ebx && intermediateReg != Operand.Ebx)
+                        CodeOutput.EmitPush(Operand.Ebx);
+                    if (destination != Operand.Edx && intermediateReg != Operand.Eax)
+                        CodeOutput.EmitPush(Operand.Edx);
+
+                    /*
+                     * Edi
+                       Esi
+                       Ecx
+                       Ebx
+                       Edx
+
+                     */
 
                     for (int i = callNode.Args.Count - 1; i >= 0; i--)
                     {
@@ -305,7 +330,29 @@ namespace GloryCompiler
 
                     CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
                     CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
-                    CodeOutput.EmitMov(destination, Operand.Eax);
+                    if (intermediateReg != null)
+                    {
+                        CodeOutput.EmitMov(intermediateReg, Operand.Eax);
+                    }
+                    else
+                        CodeOutput.EmitMov(destination, Operand.Eax);
+                    if (destination != Operand.Edx && intermediateReg != Operand.Edx)
+                        CodeOutput.EmitPop(Operand.Edx);
+                    if (destination != Operand.Ebx && intermediateReg != Operand.Ebx)
+                        CodeOutput.EmitPop(Operand.Ebx);
+                    if (destination != Operand.Ecx && intermediateReg != Operand.Ecx)
+                        CodeOutput.EmitPop(Operand.Ecx);
+                    if (destination != Operand.Edi && intermediateReg != Operand.Edi)
+                        CodeOutput.EmitPop(Operand.Edi);
+                    if (destination != Operand.Esi && intermediateReg != Operand.Esi)
+                        CodeOutput.EmitPop(Operand.Esi);
+                    if (destination != Operand.Eax)
+                        CodeOutput.EmitPop(Operand.Eax);
+                    if (intermediateReg != null)
+                        CodeOutput.EmitMov(destination, intermediateReg);
+
+
+
                     break;
                 case NodeType.NativeCall:
                     NativeCallNode nativeCallNode = (NativeCallNode)node;
@@ -409,7 +456,7 @@ namespace GloryCompiler
             */
 
 
-            _currentFunction = function;
+                    _currentFunction = function;
 
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
             int paramsize = SizeOfVariablesAndAssignOffsets(function.Parameters);
