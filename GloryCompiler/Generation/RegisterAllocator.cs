@@ -29,7 +29,7 @@ namespace GloryCompiler.Generation
             availableRegistersBitmap = (1u << numScratchRegisters) - 1u; // init all registers as available
         }
 
-        public Operand Allocate()
+        public AllocatedRegister Allocate()
         {
             // Look for a register that's not in-use
             int regNum = -1;
@@ -44,20 +44,18 @@ namespace GloryCompiler.Generation
             }
 
             if (regNum == -1)
-            {
-                CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4));
-                return Operand.ForDerefReg(OperandBase.Ebp, -CodeGenerator.stackFrameSize);
-            }
-            return GetRegisterName(regNum);
+                throw new Exception("Out of registers");
+
+            return new AllocatedRegister(this, GetOperandForReg(regNum));
         }
 
-        public void Free(Operand reg)
+        public void Free(AllocatedRegister reg)
         {
-            if (reg.Offset != 0)
+            if (reg.Operand.Offset != 0)
                 CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
             else
             {
-                int regNum = reg.OpBase switch
+                int regNum = reg.Operand.OpBase switch
                 {
                     OperandBase.Edi => 0,
                     OperandBase.Esi => 1,
@@ -93,7 +91,7 @@ namespace GloryCompiler.Generation
                 return false;
         }
 
-        public Operand GetRegisterName(int regNum)
+        public Operand GetOperandForReg(int regNum)
         {
             return registerNames.ContainsKey(regNum) ? registerNames[regNum] : null;
         }

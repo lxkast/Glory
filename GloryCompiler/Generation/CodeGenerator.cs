@@ -70,287 +70,384 @@ namespace GloryCompiler.Generation
                         CompileNode(single.Expression, null);
                         break;
                     case ReturnStatement returnStatement:
-                        CompileNode(returnStatement.Expression, Operand.Eax);
+                        CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.Eax));
                         CodeOutput.EmitJmp("EF" + _currentFunction.Name);
                         break;
                     case IfStatement ifStatement:
-                        Operand conditionResult = RegisterPool.Allocate();
-                        CompileNode(ifStatement.Condition, conditionResult);
-                        CodeOutput.EmitCmp(conditionResult, Operand.ForLiteral(0));
-                        RegisterPool.Free(conditionResult);
+
+                        // Compile conditional jump to false
+                        using (AllocatedRegister conditionResult = RegisterPool.Allocate())
+                        {
+                            CompileNode(ifStatement.Condition, conditionResult);
+                            CodeOutput.EmitCmp(conditionResult.Access(), Operand.ForLiteral(0));
+                        }
+
                         string falseLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitJe(falseLabel);
+
+                        // Compile code for true
                         CompileStatements(ifStatement.Code);
                         string doneLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitJmp(doneLabel);
+
+                        // Compile code for false
                         CodeOutput.EmitLabel(falseLabel);
                         if (ifStatement.Else != null)
-                        {
                             CompileStatements(ifStatement.Else.Code);
-                        }
+
                         CodeOutput.EmitLabel(doneLabel);
                         break;
+
                     case WhileStatement whileStatement:
+
+                        // Create begin/end labels
                         string topLabel = CodeOutput.ReserveNextLabel();
                         string whiledoneLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitLabel(topLabel);
-                        Operand whileconditionResult = RegisterPool.Allocate();
-                        CompileNode(whileStatement.Condition, whileconditionResult);
-                        CodeOutput.EmitPush(Operand.ForLiteral(0));
-                        CodeOutput.EmitCmp(whileconditionResult, Operand.ForDerefReg(OperandBase.Esp)); // this WILL break if we run out of registers
-                        RegisterPool.Free(whileconditionResult);
-                        CodeOutput.EmitJe(whiledoneLabel);
-                        if (whileStatement.Code != null)
+
+                        // Compile conditional jump to end
+                        using (AllocatedRegister whileResult = RegisterPool.Allocate())
                         {
-                            CompileStatements(whileStatement.Code);
+                            CompileNode(whileStatement.Condition, whileResult);
+                            CodeOutput.EmitCmp(whileResult.Access(), Operand.ForLiteral(0));
                         }
+
+                        CodeOutput.EmitJe(whiledoneLabel);
+
+                        // Compile body
+                        if (whileStatement.Code != null)
+                            CompileStatements(whileStatement.Code);
+
                         CodeOutput.EmitJmp(topLabel);
+
+                        // Compile end
                         CodeOutput.EmitLabel(whiledoneLabel);
-                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
                         break;
                 }
             }
         }
 
-        public void CompileNode(Node node, Operand destination)
+        public void CompileNode(Node node, AllocatedSpace destination)
         {
             switch (node.NodeType)
             {
-                // We want to add which scratch register the node is being stored in, to the node
-                // so a node can see which registers its children are stored in.
                 case NodeType.Plus:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand addRight = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, addRight);
-                    CodeOutput.EmitAdd(destination, addRight);
-                    RegisterPool.Free(addRight);
+
+                    // TODO: Potential optimization, put the "more complicated" thing on the left (since order doesn't matter) so the more complex thing happens when there's one more reg free
+                    NonLeafNode nlNode = (NonLeafNode)node;
+                    CompileNode(nlNode.LeftPtr, destination);
+
+                    using (AllocatedRegister addRight = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode.RightPtr, addRight);
+                        CodeOutput.EmitAdd(destination.Access(), addRight.Access());
+                    }
+
                     break;
                 case NodeType.Minus:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand minusRight = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, minusRight);
-                    CodeOutput.EmitSub(destination, minusRight);
-                    RegisterPool.Free(minusRight);
+
+                    NonLeafNode nlNode2 = (NonLeafNode)node;
+                    CompileNode(nlNode2.LeftPtr, destination);
+
+                    using (AllocatedRegister addRight = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode2.RightPtr, addRight);
+                        CodeOutput.EmitSub(destination.Access(), addRight.Access());
+                    }
+
                     break;
                 case NodeType.Multiply:
-                    CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand mulrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, mulrightReg);
-                    if (RegisterPool.IsRegisterAllocated(Operand.Edx))
-                    {
-                        CodeOutput.EmitPush(Operand.Edx);
-                        CodeOutput.EmitMul(mulrightReg);
-                        CodeOutput.EmitPop(Operand.Edx);
-                    }
-                    else
-                        CodeOutput.EmitMul(mulrightReg);
+                    NonLeafNode nlNode3 = (NonLeafNode)node;
+                    CompileNode(nlNode3.LeftPtr, new AllocatedMisc(Operand.Eax));
 
-                    RegisterPool.Free(mulrightReg);
-                    if (destination != Operand.Eax)
-                        CodeOutput.EmitMov(destination, Operand.Eax);
+                    using (AllocatedRegister mulRight = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode3.RightPtr, mulRight);
+
+                        // Back up edx if necessary.
+                        if (RegisterPool.IsRegisterAllocated(Operand.Edx))
+                        {
+                            CodeOutput.EmitPush(Operand.Edx);
+                            CodeOutput.EmitMul(mulRight.Access());
+                            CodeOutput.EmitPop(Operand.Edx);
+                        }
+                        else
+                            CodeOutput.EmitMul(mulRight.Access());
+                    }
+
+                    // If the destination is not already eax, output to eax.
+                    if (!destination.IsCurrentlyRegister(OperandBase.Eax))
+                        CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+
                     break;
                 case NodeType.Divide:
                 case NodeType.Div:
-                    CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand dividerightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, dividerightReg);
-                    CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
-                    CodeOutput.EmitDiv(dividerightReg);
-                    RegisterPool.Free(dividerightReg);
-                    if (destination != Operand.Eax)
-                        CodeOutput.EmitMov(destination, Operand.Eax);
+
+                    NonLeafNode nlNode4 = (NonLeafNode)node;
+                    CompileNode(nlNode4.LeftPtr, new AllocatedMisc(Operand.Eax));
+
+                    using (AllocatedRegister divRight = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode4.RightPtr, divRight);
+                        CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
+                        CodeOutput.EmitDiv(divRight.Access());
+                    }
+
+                    // If the destiantion is not already eax, output to eax.
+                    if (!destination.IsCurrentlyRegister(OperandBase.Eax))
+                        CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+
                     break;
+
                 case NodeType.Mod:
-                    CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand moddividerightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, moddividerightReg);
-                    if (moddividerightReg == Operand.Edx)
+
+                    CompileNode(((NonLeafNode)node).LeftPtr, new AllocatedMisc(Operand.Eax));
+
+                    using (AllocatedRegister modRight = RegisterPool.Allocate())
                     {
-                        CodeOutput.EmitPush(Operand.Edx);
-                        RegisterPool.Free(moddividerightReg);
-                        CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
-                        CodeOutput.EmitDiv(Operand.ForDerefReg(OperandBase.Esp, 0));
-                        if (destination != Operand.Edx)
-                            CodeOutput.EmitMov(destination, Operand.Edx);
-                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                        CompileNode(((NonLeafNode)node).RightPtr, modRight);
+
+                        // !!! As long as we make no pool changes from this point onwards, we can access once like this. !!!
+                        Operand op = modRight.Access();
+
+                        // Spill edx onto the stack if that's what the allocator picked for this.
+                        if (op == Operand.Edx)
+                        {
+                            CodeOutput.EmitPush(Operand.Edx);
+                            CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
+                            CodeOutput.EmitDiv(Operand.ForDerefReg(OperandBase.Esp, 0));
+                            CodeOutput.EmitMov(destination.Access(), Operand.Edx);
+                            CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                        }
+                        else
+                        {
+                            // TODO: What happens if EDX is in-use by something else??
+                            CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
+                            CodeOutput.EmitDiv(modRight.Access());                            
+
+                            if (!destination.IsCurrentlyRegister(OperandBase.Edx))
+                                CodeOutput.EmitMov(destination.Access(), Operand.Edx);
+                        }
                     }
-                    else
-                    {
-                        CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
-                        CodeOutput.EmitDiv(moddividerightReg);
-                        RegisterPool.Free(moddividerightReg);
-                        if (destination != Operand.Edx)
-                            CodeOutput.EmitMov(destination, Operand.Edx);
-                    }
+
                     break;
                 case NodeType.NumberLiteral:
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(((IntNode)node).Int));
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(((IntNode)node).Int));
                     break;
                 case NodeType.BoolLiteral:
                     if (((BoolNode)node).Bool == true)
-                        CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                        CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
                     else
-                        CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+                        CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
                     break;
+
                 // note for alex: put all of these into a function or something (maybe not double equals i did that one differently when i started)
                 case NodeType.DoubleEquals:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand doubleequalsrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, doubleequalsrightReg);
-                    CodeOutput.EmitXor(Operand.Eax, Operand.Eax);
-                    CodeOutput.EmitCmp(destination, doubleequalsrightReg);
-                    RegisterPool.Free(doubleequalsrightReg);
+                    NonLeafNode nlNode5 = (NonLeafNode)node;
+
+                    CompileNode(nlNode5.LeftPtr, destination);
+
+                    using (AllocatedRegister doubleequalsrightReg = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode5.RightPtr, doubleequalsrightReg);
+                        CodeOutput.EmitXor(Operand.Eax, Operand.Eax);
+                        CodeOutput.EmitCmp(destination.Access(), doubleequalsrightReg.Access());
+                    }
+
                     CodeOutput.EmitSete(Operand.Al);
-                    CodeOutput.EmitMov(destination, Operand.Eax);
+                    CodeOutput.EmitMov(destination.Access(), Operand.Eax);
                     break;
                 case NodeType.LessThan:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand lessthanrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, lessthanrightReg);
-                    CodeOutput.EmitCmp(destination, lessthanrightReg);
-                    RegisterPool.Free(lessthanrightReg);
+                    NonLeafNode nlNode6 = (NonLeafNode)node;
+
+                    CompileNode(nlNode6.LeftPtr, destination);
+
+                    // Emit conditional jump to true
+                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode6.RightPtr, lessthanrightReg);
+                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
+                    }
+                    
                     string jlLabel = CodeOutput.ReserveNextLabel();
                     string jlDoneLabel = CodeOutput.ReserveNextLabel();
+
                     CodeOutput.EmitJl(jlLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+
+                    // Emit false case
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
                     CodeOutput.EmitJmp(jlDoneLabel);
+
+                    // Emit true case
                     CodeOutput.EmitLabel(jlLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
+
                     CodeOutput.EmitLabel(jlDoneLabel);
                     break;
+
                 case NodeType.LessThanEquals:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand lessthanequalsrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, lessthanequalsrightReg);
-                    CodeOutput.EmitCmp(destination, lessthanequalsrightReg);
-                    RegisterPool.Free(lessthanequalsrightReg);
+                    NonLeafNode nlNode7 = (NonLeafNode)node;
+
+                    CompileNode(nlNode7.LeftPtr, destination);
+
+                    // Emit conditional jump to true
+                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode7.RightPtr, lessthanrightReg);
+                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
+                    }
+
                     string jleLabel = CodeOutput.ReserveNextLabel();
                     string jleDoneLabel = CodeOutput.ReserveNextLabel();
-                    CodeOutput.EmitJle(jleLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
+
+                    CodeOutput.EmitJl(jleLabel);
+
+                    // Emit false case
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
                     CodeOutput.EmitJmp(jleDoneLabel);
+
+                    // Emit true case
                     CodeOutput.EmitLabel(jleLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
+
                     CodeOutput.EmitLabel(jleDoneLabel);
                     break;
                 case NodeType.GreaterThan:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand greaterthanrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, greaterthanrightReg);
-                    CodeOutput.EmitCmp(destination, greaterthanrightReg);
-                    RegisterPool.Free(greaterthanrightReg);
-                    string jgLabel = CodeOutput.ReserveNextLabel();
-                    string jgDoneLabel = CodeOutput.ReserveNextLabel();
-                    CodeOutput.EmitJg(jgLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
-                    CodeOutput.EmitJmp(jgDoneLabel);
-                    CodeOutput.EmitLabel(jgLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
-                    CodeOutput.EmitLabel(jgDoneLabel);
+                    NonLeafNode nlNode8 = (NonLeafNode)node;
+
+                    CompileNode(nlNode8.LeftPtr, destination);
+
+                    // Emit conditional jump to true
+                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode8.RightPtr, lessthanrightReg);
+                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
+                    }
+
+                    string gtLabel = CodeOutput.ReserveNextLabel();
+                    string gtDoneLabel = CodeOutput.ReserveNextLabel();
+
+                    CodeOutput.EmitJl(gtLabel);
+
+                    // Emit false case
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
+                    CodeOutput.EmitJmp(gtDoneLabel);
+
+                    // Emit true case
+                    CodeOutput.EmitLabel(gtLabel);
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
+
+                    CodeOutput.EmitLabel(gtDoneLabel);
                     break;
                 case NodeType.GreaterThanEquals:
-                    CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand greaterthanequalsrightReg = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, greaterthanequalsrightReg);
-                    CodeOutput.EmitCmp(destination, greaterthanequalsrightReg);
-                    RegisterPool.Free(greaterthanequalsrightReg);
-                    string jgeLabel = CodeOutput.ReserveNextLabel();
-                    string jgeDoneLabel = CodeOutput.ReserveNextLabel();
-                    CodeOutput.EmitJge(jgeLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(0));
-                    CodeOutput.EmitJmp(jgeDoneLabel);
-                    CodeOutput.EmitLabel(jgeLabel);
-                    CodeOutput.EmitMov(destination, Operand.ForLiteral(1));
-                    CodeOutput.EmitLabel(jgeDoneLabel);
+                    NonLeafNode nlNode9 = (NonLeafNode)node;
+
+                    CompileNode(nlNode9.LeftPtr, destination);
+
+                    // Emit conditional jump to true
+                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode9.RightPtr, lessthanrightReg);
+                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
+                    }
+
+                    string gteLabel = CodeOutput.ReserveNextLabel();
+                    string gteDoneLabel = CodeOutput.ReserveNextLabel();
+
+                    CodeOutput.EmitJle(gteLabel);
+
+                    // Emit false case
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
+                    CodeOutput.EmitJmp(gteDoneLabel);
+
+                    // Emit true case
+                    CodeOutput.EmitLabel(gteLabel);
+                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
+
+                    CodeOutput.EmitLabel(gteDoneLabel);
                     break;
                 case NodeType.Assignment:
-
+                    NonLeafNode nlNode10 = (NonLeafNode)node;
                     Node leftNode = ((NonLeafNode)node).LeftPtr;
 
                     Operand varDestination = GetOperandForIdentifierAccess(leftNode);
 
-                    Operand assignRight = RegisterPool.Allocate();
-                    CompileNode(((NonLeafNode)node).RightPtr, assignRight);
+                    using (AllocatedRegister assignRight = RegisterPool.Allocate())
+                    {
+                        CompileNode(nlNode10.RightPtr, assignRight);
+                        CodeOutput.EmitMov(varDestination, assignRight.Access());
+                    }
 
-                    CodeOutput.EmitMov(varDestination, assignRight);
-                    RegisterPool.Free(assignRight);
                     break;
                 case NodeType.Variable:
                     Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
 
-                    if (destination.IsDereferenced)
+                    Operand destinationLoc = destination.Access();
+
+                    if (destinationLoc.IsDereferenced)
                     {
-                        Operand vintermediateReg = RegisterPool.Allocate();
-                        CodeOutput.EmitMov(vintermediateReg, varGetDestination);
-                        CodeOutput.EmitMov(destination, vintermediateReg);
-                        RegisterPool.Free(vintermediateReg);
+                        using AllocatedRegister vintermediateReg = RegisterPool.Allocate();
+                        CodeOutput.EmitMov(vintermediateReg.Access(), varGetDestination);
+                        CodeOutput.EmitMov(destinationLoc, vintermediateReg.Access());
                     }
-                    else CodeOutput.EmitMov(destination, varGetDestination);
+                    else CodeOutput.EmitMov(destinationLoc, varGetDestination);
 
                     break;
                 case NodeType.Call:
+
                     CallNode callNode = (CallNode)node;
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
-                    Operand intermediateReg = null;
-                    if (destination.IsDereferenced && destination.OpBase is OperandBase.Esp or OperandBase.Ebp)
-                        intermediateReg = RegisterPool.Allocate();
-                    // Refactor please
-                    if (destination != Operand.Eax) // Eax isn't a scratch register
-                        CodeOutput.EmitPush(Operand.Eax);
-                    if (destination != Operand.Esi && intermediateReg != Operand.Esi)
-                        CodeOutput.EmitPush(Operand.Esi);
-                    if (destination != Operand.Edi && intermediateReg != Operand.Edi)
-                        CodeOutput.EmitPush(Operand.Edi);
-                    if (destination != Operand.Ecx && intermediateReg != Operand.Ecx)
-                        CodeOutput.EmitPush(Operand.Ecx);
-                    if (destination != Operand.Ebx && intermediateReg != Operand.Ebx)
-                        CodeOutput.EmitPush(Operand.Ebx);
-                    if (destination != Operand.Edx && intermediateReg != Operand.Eax)
-                        CodeOutput.EmitPush(Operand.Edx);
 
-                    /*
-                     * Edi
-                       Esi
-                       Ecx
-                       Ebx
-                       Edx
-
-                     */
-
-                    for (int i = callNode.Args.Count - 1; i >= 0; i--)
+                    using (AllocatedRegister intermediateRegForStackDest = destination.IsOnStack() ? RegisterPool.Allocate() : null)
                     {
-                        //Operand arg = ScratchRegisterPool.AllocateScratchRegister();
-                        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4)); // TODO: Use the actual size of the parameter
-                        stackFrameSize += 4;
-                        CompileNode(callNode.Args[i], Operand.ForDerefReg(OperandBase.Esp));
-                        //CodeOutput.EmitPush(arg);
-                        //ScratchRegisterPool.FreeScratchRegister(arg);
+                        // Refactor please
+                        if (!destination.IsCurrentlyRegister(OperandBase.Eax)) // Eax isn't a scratch register
+                            CodeOutput.EmitPush(Operand.Eax);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Esi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
+                            CodeOutput.EmitPush(Operand.Esi);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Edi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
+                            CodeOutput.EmitPush(Operand.Edi);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Ecx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
+                            CodeOutput.EmitPush(Operand.Ecx);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Ebx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
+                            CodeOutput.EmitPush(Operand.Ebx);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
+                            CodeOutput.EmitPush(Operand.Edx);
+
+                        // Push parameters onto stack
+                        for (int i = callNode.Args.Count - 1; i >= 0; i--)
+                        {
+                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4)); // TODO: Use the actual size of the parameter
+                            stackFrameSize += 4;
+                            CompileNode(callNode.Args[i], new AllocatedMisc(Operand.ForDerefReg(OperandBase.Esp)));
+                        }
+
+                        // Edit the call
+                        CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
+                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
+
+                        // Move the result into the relevant place
+                        if (intermediateRegForStackDest != null)
+                            CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
+                        else
+                            CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+
+                        if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
+                            CodeOutput.EmitPop(Operand.Edx);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Ebx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
+                            CodeOutput.EmitPop(Operand.Ebx);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Ecx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
+                            CodeOutput.EmitPop(Operand.Ecx);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Edi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
+                            CodeOutput.EmitPop(Operand.Edi);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Esi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
+                            CodeOutput.EmitPop(Operand.Esi);
+                        if (!destination.IsCurrentlyRegister(OperandBase.Eax))
+                            CodeOutput.EmitPop(Operand.Eax);
+
+                        if (intermediateRegForStackDest != null)
+                            CodeOutput.EmitMov(destination.Access(), intermediateRegForStackDest.Access());
                     }
-
-                    CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
-                    CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
-                    if (intermediateReg != null)
-                    {
-                        CodeOutput.EmitMov(intermediateReg, Operand.Eax);
-                    }
-                    else
-                        CodeOutput.EmitMov(destination, Operand.Eax);
-                    if (destination != Operand.Edx && intermediateReg != Operand.Edx)
-                        CodeOutput.EmitPop(Operand.Edx);
-                    if (destination != Operand.Ebx && intermediateReg != Operand.Ebx)
-                        CodeOutput.EmitPop(Operand.Ebx);
-                    if (destination != Operand.Ecx && intermediateReg != Operand.Ecx)
-                        CodeOutput.EmitPop(Operand.Ecx);
-                    if (destination != Operand.Edi && intermediateReg != Operand.Edi)
-                        CodeOutput.EmitPop(Operand.Edi);
-                    if (destination != Operand.Esi && intermediateReg != Operand.Esi)
-                        CodeOutput.EmitPop(Operand.Esi);
-                    if (destination != Operand.Eax)
-                        CodeOutput.EmitPop(Operand.Eax);
-                    if (intermediateReg != null)
-                        CodeOutput.EmitMov(destination, intermediateReg);
-
-
 
                     break;
                 case NodeType.NativeCall:
@@ -358,8 +455,6 @@ namespace GloryCompiler.Generation
                     switch (nativeCallNode.Function.Name)
                     {
                         case "printInt":
-
-
                             // CDECL calling convention messes with EAX, ECX and EDX
                             CodeOutput.EmitPush(Operand.Eax);
                             CodeOutput.EmitPush(Operand.Ecx);
@@ -369,7 +464,7 @@ namespace GloryCompiler.Generation
 
                             //Operand intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
                             CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4));
-                            CompileNode(nativeCallNode.Args[0], Operand.ForDerefReg(OperandBase.Esp));
+                            CompileNode(nativeCallNode.Args[0], new AllocatedMisc(Operand.ForDerefReg(OperandBase.Esp)));
                             //CodeOutput.EmitPush(intermediateReg);
                             //ScratchRegisterPool.FreeScratchRegister(intermediateReg);
 
