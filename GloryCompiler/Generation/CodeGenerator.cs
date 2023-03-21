@@ -15,7 +15,7 @@ namespace GloryCompiler.Generation
         public List<Function> GlobalFunctions;
         public CodeOutput CodeOutput;
         public Parser Parser;
-        public ScratchRegisterPool ScratchRegisterPool;
+        public RegisterAllocator RegisterPool;
         Function _currentFunction;
         public int stackFrameSize;
 
@@ -23,7 +23,7 @@ namespace GloryCompiler.Generation
         {
             Parser = parser;
             CodeOutput = codeOutput;
-            ScratchRegisterPool = new ScratchRegisterPool(codeOutput, this);
+            RegisterPool = new RegisterAllocator(codeOutput, this);
             Compile();
         }
 
@@ -74,10 +74,10 @@ namespace GloryCompiler.Generation
                         CodeOutput.EmitJmp("EF" + _currentFunction.Name);
                         break;
                     case IfStatement ifStatement:
-                        Operand conditionResult = ScratchRegisterPool.AllocateScratchRegister();
+                        Operand conditionResult = RegisterPool.Allocate();
                         CompileNode(ifStatement.Condition, conditionResult);
                         CodeOutput.EmitCmp(conditionResult, Operand.ForLiteral(0));
-                        ScratchRegisterPool.FreeScratchRegister(conditionResult);
+                        RegisterPool.Free(conditionResult);
                         string falseLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitJe(falseLabel);
                         CompileStatements(ifStatement.Code);
@@ -94,11 +94,11 @@ namespace GloryCompiler.Generation
                         string topLabel = CodeOutput.ReserveNextLabel();
                         string whiledoneLabel = CodeOutput.ReserveNextLabel();
                         CodeOutput.EmitLabel(topLabel);
-                        Operand whileconditionResult = ScratchRegisterPool.AllocateScratchRegister();
+                        Operand whileconditionResult = RegisterPool.Allocate();
                         CompileNode(whileStatement.Condition, whileconditionResult);
                         CodeOutput.EmitPush(Operand.ForLiteral(0));
                         CodeOutput.EmitCmp(whileconditionResult, Operand.ForDerefReg(OperandBase.Esp)); // this WILL break if we run out of registers
-                        ScratchRegisterPool.FreeScratchRegister(whileconditionResult);
+                        RegisterPool.Free(whileconditionResult);
                         CodeOutput.EmitJe(whiledoneLabel);
                         if (whileStatement.Code != null)
                         {
@@ -120,23 +120,23 @@ namespace GloryCompiler.Generation
                 // so a node can see which registers its children are stored in.
                 case NodeType.Plus:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand addRight = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand addRight = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, addRight);
                     CodeOutput.EmitAdd(destination, addRight);
-                    ScratchRegisterPool.FreeScratchRegister(addRight);
+                    RegisterPool.Free(addRight);
                     break;
                 case NodeType.Minus:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand minusRight = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand minusRight = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, minusRight);
                     CodeOutput.EmitSub(destination, minusRight);
-                    ScratchRegisterPool.FreeScratchRegister(minusRight);
+                    RegisterPool.Free(minusRight);
                     break;
                 case NodeType.Multiply:
                     CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand mulrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand mulrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, mulrightReg);
-                    if (ScratchRegisterPool.IsRegisterOccupied(Operand.Edx))
+                    if (RegisterPool.IsRegisterAllocated(Operand.Edx))
                     {
                         CodeOutput.EmitPush(Operand.Edx);
                         CodeOutput.EmitMul(mulrightReg);
@@ -145,29 +145,29 @@ namespace GloryCompiler.Generation
                     else
                         CodeOutput.EmitMul(mulrightReg);
 
-                    ScratchRegisterPool.FreeScratchRegister(mulrightReg);
+                    RegisterPool.Free(mulrightReg);
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
                 case NodeType.Divide:
                 case NodeType.Div:
                     CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand dividerightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand dividerightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, dividerightReg);
                     CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
                     CodeOutput.EmitDiv(dividerightReg);
-                    ScratchRegisterPool.FreeScratchRegister(dividerightReg);
+                    RegisterPool.Free(dividerightReg);
                     if (destination != Operand.Eax)
                         CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
                 case NodeType.Mod:
                     CompileNode(((NonLeafNode)node).LeftPtr, Operand.Eax);
-                    Operand moddividerightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand moddividerightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, moddividerightReg);
                     if (moddividerightReg == Operand.Edx)
                     {
                         CodeOutput.EmitPush(Operand.Edx);
-                        ScratchRegisterPool.FreeScratchRegister(moddividerightReg);
+                        RegisterPool.Free(moddividerightReg);
                         CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
                         CodeOutput.EmitDiv(Operand.ForDerefReg(OperandBase.Esp, 0));
                         if (destination != Operand.Edx)
@@ -178,7 +178,7 @@ namespace GloryCompiler.Generation
                     {
                         CodeOutput.EmitXor(Operand.Edx, Operand.Edx);
                         CodeOutput.EmitDiv(moddividerightReg);
-                        ScratchRegisterPool.FreeScratchRegister(moddividerightReg);
+                        RegisterPool.Free(moddividerightReg);
                         if (destination != Operand.Edx)
                             CodeOutput.EmitMov(destination, Operand.Edx);
                     }
@@ -195,20 +195,20 @@ namespace GloryCompiler.Generation
                 // note for alex: put all of these into a function or something (maybe not double equals i did that one differently when i started)
                 case NodeType.DoubleEquals:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand doubleequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand doubleequalsrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, doubleequalsrightReg);
                     CodeOutput.EmitXor(Operand.Eax, Operand.Eax);
                     CodeOutput.EmitCmp(destination, doubleequalsrightReg);
-                    ScratchRegisterPool.FreeScratchRegister(doubleequalsrightReg);
+                    RegisterPool.Free(doubleequalsrightReg);
                     CodeOutput.EmitSete(Operand.Al);
                     CodeOutput.EmitMov(destination, Operand.Eax);
                     break;
                 case NodeType.LessThan:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand lessthanrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand lessthanrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, lessthanrightReg);
                     CodeOutput.EmitCmp(destination, lessthanrightReg);
-                    ScratchRegisterPool.FreeScratchRegister(lessthanrightReg);
+                    RegisterPool.Free(lessthanrightReg);
                     string jlLabel = CodeOutput.ReserveNextLabel();
                     string jlDoneLabel = CodeOutput.ReserveNextLabel();
                     CodeOutput.EmitJl(jlLabel);
@@ -220,10 +220,10 @@ namespace GloryCompiler.Generation
                     break;
                 case NodeType.LessThanEquals:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand lessthanequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand lessthanequalsrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, lessthanequalsrightReg);
                     CodeOutput.EmitCmp(destination, lessthanequalsrightReg);
-                    ScratchRegisterPool.FreeScratchRegister(lessthanequalsrightReg);
+                    RegisterPool.Free(lessthanequalsrightReg);
                     string jleLabel = CodeOutput.ReserveNextLabel();
                     string jleDoneLabel = CodeOutput.ReserveNextLabel();
                     CodeOutput.EmitJle(jleLabel);
@@ -235,10 +235,10 @@ namespace GloryCompiler.Generation
                     break;
                 case NodeType.GreaterThan:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand greaterthanrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand greaterthanrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, greaterthanrightReg);
                     CodeOutput.EmitCmp(destination, greaterthanrightReg);
-                    ScratchRegisterPool.FreeScratchRegister(greaterthanrightReg);
+                    RegisterPool.Free(greaterthanrightReg);
                     string jgLabel = CodeOutput.ReserveNextLabel();
                     string jgDoneLabel = CodeOutput.ReserveNextLabel();
                     CodeOutput.EmitJg(jgLabel);
@@ -250,10 +250,10 @@ namespace GloryCompiler.Generation
                     break;
                 case NodeType.GreaterThanEquals:
                     CompileNode(((NonLeafNode)node).LeftPtr, destination);
-                    Operand greaterthanequalsrightReg = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand greaterthanequalsrightReg = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, greaterthanequalsrightReg);
                     CodeOutput.EmitCmp(destination, greaterthanequalsrightReg);
-                    ScratchRegisterPool.FreeScratchRegister(greaterthanequalsrightReg);
+                    RegisterPool.Free(greaterthanequalsrightReg);
                     string jgeLabel = CodeOutput.ReserveNextLabel();
                     string jgeDoneLabel = CodeOutput.ReserveNextLabel();
                     CodeOutput.EmitJge(jgeLabel);
@@ -269,21 +269,21 @@ namespace GloryCompiler.Generation
 
                     Operand varDestination = GetOperandForIdentifierAccess(leftNode);
 
-                    Operand assignRight = ScratchRegisterPool.AllocateScratchRegister();
+                    Operand assignRight = RegisterPool.Allocate();
                     CompileNode(((NonLeafNode)node).RightPtr, assignRight);
 
                     CodeOutput.EmitMov(varDestination, assignRight);
-                    ScratchRegisterPool.FreeScratchRegister(assignRight);
+                    RegisterPool.Free(assignRight);
                     break;
                 case NodeType.Variable:
                     Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
 
                     if (destination.IsDereferenced)
                     {
-                        Operand vintermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                        Operand vintermediateReg = RegisterPool.Allocate();
                         CodeOutput.EmitMov(vintermediateReg, varGetDestination);
                         CodeOutput.EmitMov(destination, vintermediateReg);
-                        ScratchRegisterPool.FreeScratchRegister(vintermediateReg);
+                        RegisterPool.Free(vintermediateReg);
                     }
                     else CodeOutput.EmitMov(destination, varGetDestination);
 
@@ -293,7 +293,7 @@ namespace GloryCompiler.Generation
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
                     Operand intermediateReg = null;
                     if (destination.IsDereferenced && destination.OpBase is OperandBase.Esp or OperandBase.Ebp)
-                        intermediateReg = ScratchRegisterPool.AllocateScratchRegister();
+                        intermediateReg = RegisterPool.Allocate();
                     // Refactor please
                     if (destination != Operand.Eax) // Eax isn't a scratch register
                         CodeOutput.EmitPush(Operand.Eax);

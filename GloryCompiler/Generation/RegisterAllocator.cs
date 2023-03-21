@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace GloryCompiler.Generation
 {
-    internal class ScratchRegisterPool
+    internal class RegisterAllocator
     {
         private int numScratchRegisters = 5;
         private uint availableRegistersBitmap; // 32-bit bitmap
@@ -21,15 +22,16 @@ namespace GloryCompiler.Generation
             { 4, Operand.Edx }
         };
 
-        public ScratchRegisterPool(CodeOutput codeOutput, CodeGenerator gen)
+        public RegisterAllocator(CodeOutput codeOutput, CodeGenerator gen)
         {
             CodeOutput = codeOutput;
             CodeGenerator = gen;
             availableRegistersBitmap = (1u << numScratchRegisters) - 1u; // init all registers as available
         }
 
-        public Operand AllocateScratchRegister()
+        public Operand Allocate()
         {
+            // Look for a register that's not in-use
             int regNum = -1;
             for (int i = 0; i < numScratchRegisters; i++)
             {
@@ -40,6 +42,7 @@ namespace GloryCompiler.Generation
                     break;
                 }
             }
+
             if (regNum == -1)
             {
                 CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4));
@@ -48,7 +51,7 @@ namespace GloryCompiler.Generation
             return GetRegisterName(regNum);
         }
 
-        public void FreeScratchRegister(Operand reg)
+        public void Free(Operand reg)
         {
             if (reg.Offset != 0)
                 CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
@@ -70,7 +73,8 @@ namespace GloryCompiler.Generation
                 }
             }
         }
-        public bool IsRegisterOccupied(Operand reg)
+
+        public bool IsRegisterAllocated(Operand reg)
         {
             int regNum = reg.OpBase switch
             {
@@ -88,6 +92,7 @@ namespace GloryCompiler.Generation
             else
                 return false;
         }
+
         public Operand GetRegisterName(int regNum)
         {
             return registerNames.ContainsKey(regNum) ? registerNames[regNum] : null;
