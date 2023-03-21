@@ -241,7 +241,6 @@ namespace GloryCompiler.Generation
                         CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
                     break;
 
-                // note for alex: put all of these into a function or something (maybe not double equals i did that one differently when i started)
                 case NodeType.DoubleEquals:
                     NonLeafNode nlNode5 = (NonLeafNode)node;
 
@@ -258,113 +257,16 @@ namespace GloryCompiler.Generation
                     CodeOutput.EmitMov(destination.Access(), Operand.Eax);
                     break;
                 case NodeType.LessThan:
-                    NonLeafNode nlNode6 = (NonLeafNode)node;
-
-                    CompileNode(nlNode6.LeftPtr, destination);
-
-                    // Emit conditional jump to true
-                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
-                    {
-                        CompileNode(nlNode6.RightPtr, lessthanrightReg);
-                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
-                    }
-                    
-                    string jlLabel = CodeOutput.ReserveNextLabel();
-                    string jlDoneLabel = CodeOutput.ReserveNextLabel();
-
-                    CodeOutput.EmitJl(jlLabel);
-
-                    // Emit false case
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
-                    CodeOutput.EmitJmp(jlDoneLabel);
-
-                    // Emit true case
-                    CodeOutput.EmitLabel(jlLabel);
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
-
-                    CodeOutput.EmitLabel(jlDoneLabel);
+                    CompileComparison(node, destination, label => CodeOutput.EmitJl(label));
                     break;
-
                 case NodeType.LessThanEquals:
-                    NonLeafNode nlNode7 = (NonLeafNode)node;
-
-                    CompileNode(nlNode7.LeftPtr, destination);
-
-                    // Emit conditional jump to true
-                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
-                    {
-                        CompileNode(nlNode7.RightPtr, lessthanrightReg);
-                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
-                    }
-
-                    string jleLabel = CodeOutput.ReserveNextLabel();
-                    string jleDoneLabel = CodeOutput.ReserveNextLabel();
-
-                    CodeOutput.EmitJl(jleLabel);
-
-                    // Emit false case
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
-                    CodeOutput.EmitJmp(jleDoneLabel);
-
-                    // Emit true case
-                    CodeOutput.EmitLabel(jleLabel);
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
-
-                    CodeOutput.EmitLabel(jleDoneLabel);
+                    CompileComparison(node, destination, label => CodeOutput.EmitJle(label));
                     break;
                 case NodeType.GreaterThan:
-                    NonLeafNode nlNode8 = (NonLeafNode)node;
-
-                    CompileNode(nlNode8.LeftPtr, destination);
-
-                    // Emit conditional jump to true
-                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
-                    {
-                        CompileNode(nlNode8.RightPtr, lessthanrightReg);
-                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
-                    }
-
-                    string gtLabel = CodeOutput.ReserveNextLabel();
-                    string gtDoneLabel = CodeOutput.ReserveNextLabel();
-
-                    CodeOutput.EmitJl(gtLabel);
-
-                    // Emit false case
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
-                    CodeOutput.EmitJmp(gtDoneLabel);
-
-                    // Emit true case
-                    CodeOutput.EmitLabel(gtLabel);
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
-
-                    CodeOutput.EmitLabel(gtDoneLabel);
+                    CompileComparison(node, destination, label => CodeOutput.EmitJg(label));
                     break;
                 case NodeType.GreaterThanEquals:
-                    NonLeafNode nlNode9 = (NonLeafNode)node;
-
-                    CompileNode(nlNode9.LeftPtr, destination);
-
-                    // Emit conditional jump to true
-                    using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
-                    {
-                        CompileNode(nlNode9.RightPtr, lessthanrightReg);
-                        CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
-                    }
-
-                    string gteLabel = CodeOutput.ReserveNextLabel();
-                    string gteDoneLabel = CodeOutput.ReserveNextLabel();
-
-                    CodeOutput.EmitJle(gteLabel);
-
-                    // Emit false case
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
-                    CodeOutput.EmitJmp(gteDoneLabel);
-
-                    // Emit true case
-                    CodeOutput.EmitLabel(gteLabel);
-                    CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
-
-                    CodeOutput.EmitLabel(gteDoneLabel);
+                    CompileComparison(node, destination, label => CodeOutput.EmitJge(label));
                     break;
                 case NodeType.Assignment:
                     NonLeafNode nlNode10 = (NonLeafNode)node;
@@ -482,6 +384,34 @@ namespace GloryCompiler.Generation
                     }
                     break;
             }
+        }
+
+        private void CompileComparison(Node node, AllocatedSpace destination, Action<string> emitJump)
+        {
+            NonLeafNode nlNode = (NonLeafNode)node;
+            CompileNode(nlNode.LeftPtr, destination);
+
+            // Emit conditional jump to true
+            using (AllocatedRegister lessthanrightReg = RegisterPool.Allocate())
+            {
+                CompileNode(nlNode.RightPtr, lessthanrightReg);
+                CodeOutput.EmitCmp(destination.Access(), lessthanrightReg.Access());
+            }
+
+            string jlLabel = CodeOutput.ReserveNextLabel();
+            string jlDoneLabel = CodeOutput.ReserveNextLabel();
+
+            emitJump(jlLabel);
+
+            // Emit false case
+            CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(0));
+            CodeOutput.EmitJmp(jlDoneLabel);
+
+            // Emit true case
+            CodeOutput.EmitLabel(jlLabel);
+            CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(1));
+
+            CodeOutput.EmitLabel(jlDoneLabel);
         }
 
         private Operand GetOperandForIdentifierAccess(Node leftNode)
