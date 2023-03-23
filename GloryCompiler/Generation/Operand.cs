@@ -23,6 +23,7 @@ namespace GloryCompiler.Generation
             LabelName = labelName;
         }
 
+        public Operand CopyWithOffset(int offset) => new Operand(OpBase, IsDereferenced, Offset + offset, LiteralValue, LabelName);
         public static Operand ForReg(OperandBase opBase) => new Operand(opBase, false, 0, 0, null);
         public static Operand ForDerefReg(OperandBase opBase, int offset = 0) => new Operand(opBase, true, offset, 0, null);
         public static Operand ForLiteral(int value) => new Operand(OperandBase.Literal, false, 0, value, null);

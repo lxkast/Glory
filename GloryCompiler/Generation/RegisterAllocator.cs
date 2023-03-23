@@ -11,6 +11,7 @@ namespace GloryCompiler.Generation
     {
         private int numScratchRegisters = 5;
         private uint availableRegistersBitmap; // 32-bit bitmap
+        bool eaxInUse;
         public CodeOutput CodeOutput;
         public CodeGenerator CodeGenerator;
 
@@ -47,6 +48,11 @@ namespace GloryCompiler.Generation
                 throw new Exception("Out of registers");
 
             return new AllocatedRegister(this, GetOperandForReg(regNum));
+        }
+
+        public AllocatedRegister AllocateEAX()
+        {
+            return new AllocatedRegister(this, Operand.Eax);
         }
 
         public void Free(AllocatedRegister reg)

@@ -34,6 +34,7 @@ namespace GloryCompiler.Generation
         public abstract void EmitGlobal(string name);
         public abstract void EmitExtern(string name);
         public abstract void EmitData(string name, string data);
+        public abstract void EmitDataArray(string name, int size);
         public abstract void EmitJmp(string label);
     }
 
@@ -63,6 +64,12 @@ namespace GloryCompiler.Generation
             else
                 sw.WriteLine("    " + name + ": dd '" + str + "'");
         }
+
+        public override void EmitDataArray(string name, int size)
+        {
+            sw.WriteLine(name + " times " + size + " dd 0");
+        }
+
         public override void EmitPush(Operand operand)
         {
             sw.Write("    ");
@@ -204,8 +211,9 @@ namespace GloryCompiler.Generation
         }
         private void EmitOperand(Operand operand)
         {
-            if (operand.IsDereferenced == true)
+            if (operand.IsDereferenced)
                 sw.Write("[");
+
             if (operand.OpBase == OperandBase.Literal)
                 sw.Write(operand.LiteralValue);
             else if (operand.OpBase == OperandBase.Label)
@@ -241,6 +249,10 @@ namespace GloryCompiler.Generation
                     OperandBase.Al => "al",
                     _ => throw new Exception("Unkown operand")
                 });
+            }
+
+            if (operand.IsDereferenced)
+            {
                 if (operand.Offset < 0)
                 {
                     sw.Write("-" + -operand.Offset);
@@ -249,9 +261,8 @@ namespace GloryCompiler.Generation
                 {
                     sw.Write("+" + operand.Offset);
                 }
-            }
-            if (operand.IsDereferenced == true)
                 sw.Write("]");
+            }
         }
     }
 

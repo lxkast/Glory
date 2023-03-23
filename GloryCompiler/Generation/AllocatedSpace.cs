@@ -11,8 +11,14 @@ namespace GloryCompiler.Generation
     internal abstract class AllocatedSpace
     {
         public abstract bool IsOnStack();
+        public abstract bool IsRegister();
         public abstract bool IsCurrentlyRegister(OperandBase b);
         public abstract Operand Access();
+    }
+
+    internal abstract class AllocatedIndexAccess
+    {
+        public AllocatedRegister Register;
     }
 
     // Represents an allocated space in memory that's not under the control of any of the pools.
@@ -22,6 +28,7 @@ namespace GloryCompiler.Generation
         public Operand Operand;
         public AllocatedMisc(Operand operand) => Operand = operand;
         public override bool IsCurrentlyRegister(OperandBase b) => Operand.OpBase == b;
+        public override bool IsRegister() => !IsOnStack() && Operand.OpBase != OperandBase.Label;
         public override bool IsOnStack() => Operand.IsDereferenced && Operand.OpBase is OperandBase.Esp or OperandBase.Ebp;
         public override Operand Access() => Operand;
     }
@@ -49,10 +56,8 @@ namespace GloryCompiler.Generation
             return Operand;
         }
 
-        public override bool IsOnStack()
-        {
-            return false;
-        }
+        public override bool IsRegister() => true;
+        public override bool IsOnStack() => false;
 
         public void Dispose()
         {

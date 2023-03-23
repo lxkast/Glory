@@ -17,6 +17,7 @@ namespace GloryCompiler.Generation
         public Parser Parser;
         public RegisterAllocator RegisterPool;
         Function _currentFunction;
+        int _currentFunctionParamSize;
         public int stackFrameSize;
 
         public CodeGenerator(Parser parser, CodeOutput codeOutput)
@@ -43,7 +44,10 @@ namespace GloryCompiler.Generation
             CodeOutput.EmitData("PRINTINTASSTRING", "%d");
             for (int i = 0; i < Parser.GlobalVariables.Count; i++)
             {
-                CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name, null);
+                if (Parser.GlobalVariables[i].Type.Type == GloryTypes.Array)
+                    CodeOutput.EmitDataArray("V" + Parser.GlobalVariables[i].Name, ((ArrayGloryType)Parser.GlobalVariables[i].Type)._size);
+                else
+                    CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name, null);
             }
 
             CodeOutput.StartTextSection();
@@ -70,7 +74,14 @@ namespace GloryCompiler.Generation
                         CompileNode(single.Expression, null);
                         break;
                     case ReturnStatement returnStatement:
-                        CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.Eax));
+                        if (_currentFunction.ReturnType.Type == GloryTypes.Array)
+                        {
+                            CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.ForDerefReg(OperandBase.Ebp, 4 + _currentFunctionParamSize)));
+                        }
+                        else
+                        {
+                            CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.Eax));
+                        }
                         CodeOutput.EmitJmp("EF" + _currentFunction.Name);
                         break;
                     case IfStatement ifStatement:
@@ -231,6 +242,35 @@ namespace GloryCompiler.Generation
                     }
 
                     break;
+                case NodeType.Indexer:
+
+                    IndexNode indexNode = (IndexNode)node;
+                    
+                    using (AllocatedRegister indexDest = RegisterPool.Allocate())
+                    {
+                        // Compile the index
+                        CompileNode(indexNode.Index, indexDest);
+
+                        // Do a different thing
+                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral());
+                        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
+
+                        if (indexNode.Target.NodeType == NodeType.Variable)
+                        {
+                            // For indexing a variable, access at an offset.
+                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
+                        }
+                        else if 
+
+                        
+
+                        // Access at offset
+                        CodeOutput.EmitAdd(indexNode, );
+                    }
+
+
+
+                    break;
                 case NodeType.NumberLiteral:
                     CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(((IntNode)node).Int));
                     break;
@@ -272,35 +312,44 @@ namespace GloryCompiler.Generation
                     NonLeafNode nlNode10 = (NonLeafNode)node;
                     Node leftNode = ((NonLeafNode)node).LeftPtr;
 
-                    Operand varDestination = GetOperandForIdentifierAccess(leftNode);
+                    Operand varDestination = GetOperandForIdentifierAccess(leftNode, out GloryType avarType);
 
-                    using (AllocatedRegister assignRight = RegisterPool.Allocate())
-                    {
-                        CompileNode(nlNode10.RightPtr, assignRight);
-                        CodeOutput.EmitMov(varDestination, assignRight.Access());
-                    }
+                    //using (AllocatedRegister assignRight = RegisterPool.Allocate())
+                    //{
+                        CompileNode(nlNode10.RightPtr, new AllocatedMisc(varDestination));
+                        //CodeOutput.EmitMov(varDestination, assignRight.Access());
+                    //}
 
                     break;
                 case NodeType.Variable:
-                    Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node);
+                    Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node, out GloryType vvarType);
 
-                    Operand destinationLoc = destination.Access();
+                    if (vvarType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
 
-                    if (destinationLoc.IsDereferenced)
+                    if (destination.IsRegister())
+                        CodeOutput.EmitMov(destination.Access(), varGetDestination);
+                    else
                     {
                         using AllocatedRegister vintermediateReg = RegisterPool.Allocate();
-                        CodeOutput.EmitMov(vintermediateReg.Access(), varGetDestination);
-                        CodeOutput.EmitMov(destinationLoc, vintermediateReg.Access());
-                    }
-                    else CodeOutput.EmitMov(destinationLoc, varGetDestination);
+
+                        if (vvarType.Type == GloryTypes.Array)
+                            CompileMoveArrayData(destination, vintermediateReg, vvarType);
+                        else
+                        {
+                            CodeOutput.EmitMov(vintermediateReg.Access(), varGetDestination);
+                            CodeOutput.EmitMov(destination.Access(), vintermediateReg.Access());
+                        }
+                    } 
 
                     break;
                 case NodeType.Call:
-
                     CallNode callNode = (CallNode)node;
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
+                    GloryType returnType = callNode.Function.ReturnType;
 
-                    using (AllocatedRegister intermediateRegForStackDest = destination.IsOnStack() ? RegisterPool.Allocate() : null)
+                    if (returnType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
+
+                    using (AllocatedRegister intermediateRegForStackDest = destination.IsRegister() ? null : RegisterPool.Allocate())
                     {
                         // Refactor please
                         if (!destination.IsCurrentlyRegister(OperandBase.Eax)) // Eax isn't a scratch register
@@ -316,6 +365,10 @@ namespace GloryCompiler.Generation
                         if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
                             CodeOutput.EmitPush(Operand.Edx);
 
+                        //Return value
+                        if (returnType.Type == GloryTypes.Array)
+                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(sizeOf(returnType)));
+
                         // Push parameters onto stack
                         for (int i = callNode.Args.Count - 1; i >= 0; i--)
                         {
@@ -329,10 +382,15 @@ namespace GloryCompiler.Generation
                         CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
 
                         // Move the result into the relevant place
-                        if (intermediateRegForStackDest != null)
+                        if (returnType.Type == GloryTypes.Array)
+                            CompileMoveArrayData(destination, intermediateRegForStackDest, returnType);
+                        else if (intermediateRegForStackDest != null)
                             CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
                         else
                             CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+
+                        if (returnType.Type == GloryTypes.Array)
+                            CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf(returnType)));
 
                         if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
                             CodeOutput.EmitPop(Operand.Edx);
@@ -386,6 +444,16 @@ namespace GloryCompiler.Generation
             }
         }
 
+        private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType)
+        {
+            for (int i = 0; i < ((ArrayGloryType)arrayType)._size; i++)
+            {
+                Operand destOperand = destination.Access().CopyWithOffset(i * 4);
+                CodeOutput.EmitMov(intermediateReg.Access(), Operand.ForDerefReg(OperandBase.Esp, i * 4));
+                CodeOutput.EmitMov(destOperand, intermediateReg.Access());
+            }
+        }
+
         private void CompileComparison(Node node, AllocatedSpace destination, Action<string> emitJump)
         {
             NonLeafNode nlNode = (NonLeafNode)node;
@@ -414,12 +482,14 @@ namespace GloryCompiler.Generation
             CodeOutput.EmitLabel(jlDoneLabel);
         }
 
-        private Operand GetOperandForIdentifierAccess(Node leftNode)
+        private Operand GetOperandForIdentifierAccess(Node leftNode, out GloryType type)
         {
+            type = null;
             Operand varDestination = null;
             if (leftNode.NodeType == NodeType.Variable)
             {
                 Variable variable = ((VariableNode)leftNode).Variable;
+                type = variable.Type;
                 if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
                 {
                     varDestination = Operand.ForDerefReg(OperandBase.Ebp, -variable.Offset);
@@ -445,29 +515,19 @@ namespace GloryCompiler.Generation
                  
               The stack is created like this:
               
-                       +--------------+
-                       |      b       |   <- argumemts are pushed onto the stack in reverse order
-                       |--------------|
-                       |      a       |
-                       |--------------|
-                       |return address|   <- the return address is automatically pushed when running a "call" instruction
-                       |--------------|
-                       |   old ebp    |   
-                       |--------------|
-                       |      c       |   <- local variables
-                       +--------------+
-
-                        +--------------+
-                        |      b       |
-                        |--------------|
-                        |      a       | 
-                        |--------------|
-                        |return address|  <- stack pointer (ESP register)
-                        |--------------|
-                        |   old ebp    |  
-                        |--------------|
-                        |      c       |  
-                        +--------------+
+                       +---------------+
+                       |ret array space|
+                       +---------------+
+                       |      b        |   <- argumemts are pushed onto the stack in reverse order
+                       |---------------|
+                       |      a        |
+                       |---------------|
+                       |return address |   <- the return address is automatically pushed when running a "call" instruction
+                       |---------------|
+                       |   old ebp     |   
+                       |---------------|
+                       |      c        |   <- local variables
+                       +---------------+
 
 
 
@@ -483,10 +543,10 @@ namespace GloryCompiler.Generation
             _currentFunction = function;
 
             int size = SizeOfVariablesAndAssignOffsets(function.Vars);
-            int paramsize = SizeOfVariablesAndAssignOffsets(function.Parameters);
+            _currentFunctionParamSize = SizeOfVariablesAndAssignOffsets(function.Parameters);
             CodeOutput.EmitLabel("F" + function.Name);
 
-            CompilePrologue(size - paramsize);
+            CompilePrologue(size - _currentFunctionParamSize);
             stackFrameSize += size;
 
             for (int i = 0; i < function.Parameters.Count; i++)
@@ -496,11 +556,11 @@ namespace GloryCompiler.Generation
             }
             for (int i = function.Parameters.Count; i < function.Vars.Count; i++)
             {
-                function.Vars[i].Offset -= paramsize;
+                function.Vars[i].Offset -= _currentFunctionParamSize;
             }
             CompileStatements(function.Code);
 
-            CompileEpilogue(size - paramsize);
+            CompileEpilogue(size - _currentFunctionParamSize);
             stackFrameSize -= size;
 
             _currentFunction = null;

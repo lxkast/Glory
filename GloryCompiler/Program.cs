@@ -10,20 +10,31 @@ namespace GloryCompiler
         {
 
             Lexer lexer = new Lexer(@"
-            int factorial(int n)
+
+            int[5] moveArr()
             {
-                if (n == 1)
-                {
-                    return 1;
-                }
-                else
-                {
-                    return n * factorial(n-1);
-                }
+                int[5] a;
+                return a;
             }
 
-            printInt(factorial(4));
-            
+            int[5] moveArrTwo()
+            {
+                return moveArr();
+            }
+
+            int[5] b = moveArrTwo();
+
+            #int factorial(int n)
+            #{
+            #    int answer = 1;
+            #    while n > 0
+            #    {
+            #        answer *= n;
+            #        n -=1 ;
+            #    }
+            #    return answer;
+            #}
+            #printInt(factorial(3));
 
             ");
 
