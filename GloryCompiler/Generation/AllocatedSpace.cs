@@ -8,17 +8,13 @@ namespace GloryCompiler.Generation
 {
     // Represents a space in memory that's currently being used.
     // This could be a register, a place on the stack, a global, literally anything that's in place.
-    internal abstract class AllocatedSpace
+    internal abstract class AllocatedSpace : IDisposable
     {
         public abstract bool IsOnStack();
         public abstract bool IsRegister();
         public abstract bool IsCurrentlyRegister(OperandBase b);
         public abstract Operand Access();
-    }
-
-    internal abstract class AllocatedIndexAccess
-    {
-        public AllocatedRegister Register;
+        public abstract void Dispose();
     }
 
     // Represents an allocated space in memory that's not under the control of any of the pools.
@@ -31,9 +27,10 @@ namespace GloryCompiler.Generation
         public override bool IsRegister() => !IsOnStack() && Operand.OpBase != OperandBase.Label;
         public override bool IsOnStack() => Operand.IsDereferenced && Operand.OpBase is OperandBase.Esp or OperandBase.Ebp;
         public override Operand Access() => Operand;
+        public override void Dispose() { }
     }
 
-    internal class AllocatedRegister : AllocatedSpace, IDisposable
+    internal class AllocatedRegister : AllocatedSpace
     {
         RegisterAllocator _creator;
         public Operand Operand;
@@ -62,9 +59,21 @@ namespace GloryCompiler.Generation
         public override bool IsRegister() => true;
         public override bool IsOnStack() => false;
 
-        public void Dispose()
+        public override void Dispose()
         {
             _creator.Free(this);
         }
+    }
+
+    internal class AllocatedDeref : AllocatedSpace
+    {
+        AllocatedSpace _innerSpace;
+        public AllocatedDeref(AllocatedSpace innerSpace) => _innerSpace = innerSpace;
+
+        public override Operand Access() => _innerSpace.Access().CopyWithDerefSetTo(true);
+        public override bool IsCurrentlyRegister(OperandBase b) => _innerSpace.IsCurrentlyRegister(b);
+        public override bool IsOnStack() => _innerSpace.IsOnStack();
+        public override bool IsRegister() => _innerSpace.IsRegister();
+        public override void Dispose() => _innerSpace.Dispose();
     }
 }

@@ -11,23 +11,13 @@ namespace GloryCompiler
 
             Lexer lexer = new Lexer(@"
 
-            int a = 5; int b = 2;
-
-
-
-int factorial()
-{
-    return a/b;
-}
-
-printInt(factorial());
-
-
-
-
-
-
-
+            blank add()
+            {
+            int[13] array;
+            array[9] = 2;
+            printInt(array[9]);
+            }
+            add();
 
 
 

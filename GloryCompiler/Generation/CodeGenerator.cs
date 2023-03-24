@@ -257,34 +257,43 @@ namespace GloryCompiler.Generation
                 case NodeType.Indexer:
 
                     IndexNode indexNode = (IndexNode)node;
-                    
-                    //using (AllocatedRegister indexDest = RegisterPool.Allocate())
-                    //{
-                    //    // Compile the index
-                    //    CompileNode(indexNode.Index, indexDest);
 
-                    //    // Make space for the array
+                    using (AllocatedRegister indexDest = RegisterPool.Allocate())
+                    {
+                        // Compile the index
+                        CompileNode(indexNode.Index, indexDest);
 
-                        
+                        if (indexNode.Target.NodeType == NodeType.Variable)
+                        {
+                            Variable variable = ((VariableNode)indexNode.Target).Variable;
 
-                    //    if (indexNode.Target.NodeType == NodeType.Variable)
-                    //    {
-                    //        VariableNode varNode = (VariableNode)indexNode.Target;
+                            // For indexing a variable, access at the offset of that variable.
+                            // For a local variable, perform one add for esp and a subtract for the offset
+                            if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
+                            {
+                                CodeOutput.EmitAdd(indexDest.Access(), Operand.Ebp);
+                                CodeOutput.EmitSub(indexDest.Access(), Operand.ForLiteral(variable.Offset));
+                            }
+                            else
+                                CodeOutput.EmitAdd(indexDest.Access(), Operand.ForLabel("V" + variable.Name));
 
-                    //        // For indexing a variable, access at the offset of that variable.
-                    //        CodeOutput.EmitSub(Operand.Add, Operand.ForLiteral(varNode.Variable.Offset));
-                    //    }
-                    //    else if
-                    //    {
-                    //        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf()));
-                    //        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
-                    //    }
-
-                        
-
-                    //    // Access at offset
-                    //    CodeOutput.EmitAdd(indexNode, );
-                    //}
+                            if (destination.IsRegister())
+                                CodeOutput.EmitMov(destination.Access(), indexDest.Access().CopyWithDerefSetTo(true));
+                            else
+                            {
+                                using (AllocatedRegister intermediateReg12000 = RegisterPool.Allocate())
+                                {
+                                    CodeOutput.EmitMov(intermediateReg12000.Access(), indexDest.Access().CopyWithDerefSetTo(true));
+                                    CodeOutput.EmitMov(destination.Access(), intermediateReg12000.Access());
+                                }
+                            }
+                        }
+                        //else if
+                        //{
+                        //    CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf()));
+                        //    CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
+                        //}
+                    }
 
 
 
@@ -330,17 +339,46 @@ namespace GloryCompiler.Generation
                     NonLeafNode nlNode10 = (NonLeafNode)node;
                     Node leftNode = ((NonLeafNode)node).LeftPtr;
 
-                    Operand varDestination = GetOperandForIdentifierAccess(leftNode, out GloryType avarType);
+                    if (leftNode.NodeType == NodeType.Indexer)
+                    {
+                        IndexNode indexNode2 = ((IndexNode)leftNode);
+                        Variable indexerTargetVariable = ((VariableNode)indexNode2.Target).Variable; // Assuming that the target will always be a variable as that's what the parser outputs.
+
+                        using (AllocatedRegister indexReg = RegisterPool.Allocate())
+                        {
+                            // Compile the index
+                            CompileNode(indexNode2.Index, indexReg);
+
+                            // For indexing a variable, access at the offset of that variable.
+                            // For a local variable, perform one add for esp and a subtract for the offset
+                            if (_currentFunction != null && _currentFunction.Vars.Contains(indexerTargetVariable))
+                            {
+                                CodeOutput.EmitAdd(indexReg.Access(), Operand.Ebp);
+                                CodeOutput.EmitSub(indexReg.Access(), Operand.ForLiteral(indexerTargetVariable.Offset));
+                            }
+                            else
+                                CodeOutput.EmitAdd(indexReg.Access(), Operand.ForLabel("V" + indexerTargetVariable.Name));
+
+                            CompileNode(nlNode10.RightPtr, new AllocatedDeref(indexReg));
+                        }
+
+                    }
+                    // Variables
+                    else
+                    {
+                        Operand varDestination = GetOperandForVariableAccess(leftNode, out GloryType avarType);
+                        CompileNode(nlNode10.RightPtr, new AllocatedMisc(varDestination));
+                    }
 
                     //using (AllocatedRegister assignRight = RegisterPool.Allocate())
                     //{
-                        CompileNode(nlNode10.RightPtr, new AllocatedMisc(varDestination));
+                    
                         //CodeOutput.EmitMov(varDestination, assignRight.Access());
                     //}
 
                     break;
                 case NodeType.Variable:
-                    Operand varGetDestination = GetOperandForIdentifierAccess((VariableNode)node, out GloryType vvarType);
+                    Operand varGetDestination = GetOperandForVariableAccess((VariableNode)node, out GloryType vvarType);
 
                     if (vvarType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
 
@@ -365,26 +403,26 @@ namespace GloryCompiler.Generation
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
                     GloryType returnType = callNode.Function.ReturnType;
 
-                    if (returnType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
+                    if (returnType?.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
 
-                    using (AllocatedRegister intermediateRegForStackDest = destination.IsRegister() ? null : RegisterPool.Allocate())
+                    using (AllocatedRegister intermediateRegForStackDest = destination?.IsRegister() is false or null ? null : RegisterPool.Allocate())
                     {
                         // Refactor please
-                        if (!destination.IsCurrentlyRegister(OperandBase.Eax)) // Eax isn't a scratch register
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Eax) == true) // Eax isn't a scratch register
                             CodeOutput.EmitPush(Operand.Eax);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Esi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Esi) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
                             CodeOutput.EmitPush(Operand.Esi);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Edi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Edi) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
                             CodeOutput.EmitPush(Operand.Edi);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Ecx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Ecx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
                             CodeOutput.EmitPush(Operand.Ecx);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Ebx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Ebx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
                             CodeOutput.EmitPush(Operand.Ebx);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Edx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
                             CodeOutput.EmitPush(Operand.Edx);
 
                         //Return value
-                        if (returnType.Type == GloryTypes.Array)
+                        if (returnType?.Type == GloryTypes.Array)
                             CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(sizeOf(returnType)));
 
                         // Push parameters onto stack
@@ -400,27 +438,30 @@ namespace GloryCompiler.Generation
                         CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
 
                         // Move the result into the relevant place
-                        if (returnType.Type == GloryTypes.Array)
-                            CompileMoveArrayData(destination, intermediateRegForStackDest, returnType);
-                        else if (intermediateRegForStackDest != null)
-                            CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
-                        else
-                            CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+                        if (returnType != null)
+                        {
+                            if (returnType.Type == GloryTypes.Array)
+                                CompileMoveArrayData(destination, intermediateRegForStackDest, returnType);
+                            else if (intermediateRegForStackDest != null)
+                                CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
+                            else
+                                CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+                        }
 
-                        if (returnType.Type == GloryTypes.Array)
+                        if (returnType?.Type == GloryTypes.Array)
                             CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf(returnType)));
 
-                        if (!destination.IsCurrentlyRegister(OperandBase.Edx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Edx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edx) is false or null)
                             CodeOutput.EmitPop(Operand.Edx);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Ebx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Ebx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ebx) is false or null)
                             CodeOutput.EmitPop(Operand.Ebx);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Ecx) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Ecx) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Ecx) is false or null)
                             CodeOutput.EmitPop(Operand.Ecx);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Edi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Edi) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Edi) is false or null)
                             CodeOutput.EmitPop(Operand.Edi);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Esi) && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Esi) == true && intermediateRegForStackDest?.IsCurrentlyRegister(OperandBase.Esi) is false or null)
                             CodeOutput.EmitPop(Operand.Esi);
-                        if (!destination.IsCurrentlyRegister(OperandBase.Eax))
+                        if (!destination?.IsCurrentlyRegister(OperandBase.Eax) == true)
                             CodeOutput.EmitPop(Operand.Eax);
 
                         if (intermediateRegForStackDest != null)
@@ -508,25 +549,15 @@ namespace GloryCompiler.Generation
             CodeOutput.EmitLabel(jlDoneLabel);
         }
 
-        private Operand GetOperandForIdentifierAccess(Node leftNode, out GloryType type)
+        private Operand GetOperandForVariableAccess(Node leftNode, out GloryType type)
         {
-            type = null;
-            Operand varDestination = null;
-            if (leftNode.NodeType == NodeType.Variable)
-            {
-                Variable variable = ((VariableNode)leftNode).Variable;
-                type = variable.Type;
-                if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
-                {
-                    varDestination = Operand.ForDerefReg(OperandBase.Ebp, -variable.Offset);
-                }
-                else
-                {
-                    varDestination = Operand.ForDerefLabel("V" + variable.Name);
-                }
-            }
+            Variable variable = ((VariableNode)leftNode).Variable;
+            type = variable.Type;
 
-            return varDestination;
+            if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
+                return Operand.ForDerefReg(OperandBase.Ebp, -variable.Offset);
+            else
+                return Operand.ForDerefLabel("V" + variable.Name);
         }
 
         public void CompileFunction(Function function)

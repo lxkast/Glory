@@ -130,7 +130,7 @@ namespace GloryCompiler.Syntax
                 _currentIndex++;
             }
 
-            // Assignments (a = ...)
+            // Assignments (a = ...) or Calls (a()...) 
             else if (ReadToken().Type == TokenType.Identifier)
             {
                 if (PeekToken(1).Type == TokenType.OpenBracket)
@@ -336,17 +336,31 @@ namespace GloryCompiler.Syntax
             string val = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex++;
 
+            Node leftSide;
+
+            // Get the LHS (whether it's an index or a variable)
+            if (ReadToken().Type == TokenType.OpenSquare)
+            {
+                _currentIndex++;
+
+                leftSide = new IndexNode(new VariableNode(FindIdentifier(val)), ParseExpression());
+
+                if (ReadToken().Type != TokenType.CloseSquare) throw new Exception("Expected ]");
+                _currentIndex++;
+            }
+            else
+            {
+                leftSide = new VariableNode(FindIdentifier(val));
+            }
+
             if (ReadToken().Type == TokenType.Equals)
             {
                 _currentIndex++;
 
-                // Get the variable
-                Variable variable = FindIdentifier(val);
-                VariableNode varNode = new VariableNode(variable);
 
                 // Parse the right and create the node
                 Node right = ParseExpression();
-                Node equals = new NonLeafNode(NodeType.Assignment, varNode, right);
+                Node equals = new NonLeafNode(NodeType.Assignment, leftSide, right);
 
                 // Type-check the node
                 VerifyAndGetTypeOf(equals);
