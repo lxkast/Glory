@@ -11,32 +11,51 @@ namespace GloryCompiler
 
             Lexer lexer = new Lexer(@"
 
-            int[5] moveArr()
+            int a = 5; int b = 2;
+
+
+
+int factorial()
+{
+    return a/b;
+}
+
+printInt(factorial());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            ")
             {
-                int[5] a;
-                return a;
-            }
 
-            int[5] moveArrTwo()
-            {
-                return moveArr();
-            }
-
-            int[5] b = moveArrTwo();
-
-            #int factorial(int n)
-            #{
-            #    int answer = 1;
-            #    while n > 0
-            #    {
-            #        answer *= n;
-            #        n -=1 ;
-            #    }
-            #    return answer;
-            #}
-            #printInt(factorial(3));
-
-            ");
+            };
 
             //Lexer lexer = new Lexer(System.IO.File.ReadAllText(args[0]));
             List<Token> tokens = lexer.Process();
@@ -59,3 +78,37 @@ namespace GloryCompiler
         }
     }
 }
+
+/*
+ * #int[5] moveArr()
+            #{
+            #    int[5] a;
+            #    return a;
+            #}
+            #
+            #int[5] moveArrTwo()
+            #{
+            #    return moveArr();
+            #}
+            #int[5] b = moveArrTwo();
+
+            int a(int n)
+            {
+                n += 1;
+                return n / 2 + n / 3;
+            }
+            
+            int t = a(6);
+
+            #int factorial(int n)
+            #{
+            #    int answer = 1;
+            #    while n > 0
+            #    {
+            #        answer *= n;
+            #        n -=1 ;
+            #    }
+            #    return answer;
+            #}
+            #printInt(factorial(3));
+*/

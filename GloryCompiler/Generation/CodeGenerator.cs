@@ -80,7 +80,8 @@ namespace GloryCompiler.Generation
                         }
                         else
                         {
-                            CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.Eax));
+                            using (AllocatedRegister reg = RegisterPool.AllocateEAX())
+                                CompileNode(returnStatement.Expression, reg);
                         }
                         CodeOutput.EmitJmp("EF" + _currentFunction.Name);
                         break;
@@ -195,7 +196,15 @@ namespace GloryCompiler.Generation
                 case NodeType.Div:
 
                     NonLeafNode nlNode4 = (NonLeafNode)node;
-                    CompileNode(nlNode4.LeftPtr, new AllocatedMisc(Operand.Eax));
+
+                    // If the destination is eax, just use that.
+                    AllocatedRegister eaxReg;
+                    if (destination.IsCurrentlyRegister(OperandBase.Eax))
+                        eaxReg = (AllocatedRegister)destination;
+                    else
+                        eaxReg = RegisterPool.AllocateEAX();
+
+                    CompileNode(nlNode4.LeftPtr, eaxReg);
 
                     using (AllocatedRegister divRight = RegisterPool.Allocate())
                     {
@@ -204,9 +213,12 @@ namespace GloryCompiler.Generation
                         CodeOutput.EmitDiv(divRight.Access());
                     }
 
-                    // If the destiantion is not already eax, output to eax.
+                    // If the destination wasn't eax, move from our eax allocation into whatever the destination is and free our eax
                     if (!destination.IsCurrentlyRegister(OperandBase.Eax))
+                    {
                         CodeOutput.EmitMov(destination.Access(), Operand.Eax);
+                        RegisterPool.Free(eaxReg);
+                    }
 
                     break;
 
@@ -246,27 +258,33 @@ namespace GloryCompiler.Generation
 
                     IndexNode indexNode = (IndexNode)node;
                     
-                    using (AllocatedRegister indexDest = RegisterPool.Allocate())
-                    {
-                        // Compile the index
-                        CompileNode(indexNode.Index, indexDest);
+                    //using (AllocatedRegister indexDest = RegisterPool.Allocate())
+                    //{
+                    //    // Compile the index
+                    //    CompileNode(indexNode.Index, indexDest);
 
-                        // Do a different thing
-                        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral());
-                        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
-
-                        if (indexNode.Target.NodeType == NodeType.Variable)
-                        {
-                            // For indexing a variable, access at an offset.
-                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
-                        }
-                        else if 
+                    //    // Make space for the array
 
                         
 
-                        // Access at offset
-                        CodeOutput.EmitAdd(indexNode, );
-                    }
+                    //    if (indexNode.Target.NodeType == NodeType.Variable)
+                    //    {
+                    //        VariableNode varNode = (VariableNode)indexNode.Target;
+
+                    //        // For indexing a variable, access at the offset of that variable.
+                    //        CodeOutput.EmitSub(Operand.Add, Operand.ForLiteral(varNode.Variable.Offset));
+                    //    }
+                    //    else if
+                    //    {
+                    //        CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf()));
+                    //        CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral());
+                    //    }
+
+                        
+
+                    //    // Access at offset
+                    //    CodeOutput.EmitAdd(indexNode, );
+                    //}
 
 
 
@@ -446,11 +464,19 @@ namespace GloryCompiler.Generation
 
         private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType)
         {
-            for (int i = 0; i < ((ArrayGloryType)arrayType)._size; i++)
+            ArrayGloryType arrayTypeAsArray = (ArrayGloryType)arrayType;
+            for (int i = 0; i < arrayTypeAsArray._size; i++)
             {
                 Operand destOperand = destination.Access().CopyWithOffset(i * 4);
-                CodeOutput.EmitMov(intermediateReg.Access(), Operand.ForDerefReg(OperandBase.Esp, i * 4));
-                CodeOutput.EmitMov(destOperand, intermediateReg.Access());
+
+                if (arrayTypeAsArray.ItemType.Type == GloryTypes.Array)
+                    CompileMoveArrayData(destination, intermediateReg, arrayTypeAsArray.ItemType);
+                else
+                {
+                    CodeOutput.EmitMov(intermediateReg.Access(), Operand.ForDerefReg(OperandBase.Esp, i * 4));
+                    CodeOutput.EmitMov(destOperand, intermediateReg.Access());
+                }
+                
             }
         }
 

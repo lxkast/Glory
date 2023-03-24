@@ -38,9 +38,13 @@ namespace GloryCompiler.Generation
         RegisterAllocator _creator;
         public Operand Operand;
 
-        public AllocatedRegister(RegisterAllocator creator, Operand operand)
+        // EAX allocation
+        public bool WasEaxInUse;
+
+        public AllocatedRegister(RegisterAllocator creator, Operand operand, bool wasEaxInUse)
         {
             _creator = creator;
+            WasEaxInUse = wasEaxInUse;
             Operand = operand;
         }
 
@@ -52,7 +56,6 @@ namespace GloryCompiler.Generation
 
         public override Operand Access()
         {
-            // Temporary
             return Operand;
         }
 

@@ -15,6 +15,8 @@ namespace GloryCompiler.Generation
         public CodeOutput CodeOutput;
         public CodeGenerator CodeGenerator;
 
+        List<AllocatedRegister> _currentEAXUsers = new List<AllocatedRegister>();
+
         Dictionary<int, Operand> registerNames = new Dictionary<int, Operand> {
             { 0, Operand.Edi },
             { 1, Operand.Esi },
@@ -47,33 +49,51 @@ namespace GloryCompiler.Generation
             if (regNum == -1)
                 throw new Exception("Out of registers");
 
-            return new AllocatedRegister(this, GetOperandForReg(regNum));
+            return new AllocatedRegister(this, GetOperandForReg(regNum), false);
         }
 
         public AllocatedRegister AllocateEAX()
         {
-            return new AllocatedRegister(this, Operand.Eax);
+            AllocatedRegister allocRegResult = new AllocatedRegister(this, Operand.Eax, _currentEAXUsers.Count > 0);
+
+            // If EAX is in use right now, make a backup.
+            if (_currentEAXUsers.Count > 0)
+                CodeOutput.EmitPush(Operand.Eax);
+
+            _currentEAXUsers.Add(allocRegResult);
+            return allocRegResult;
         }
 
         public void Free(AllocatedRegister reg)
         {
-            if (reg.Operand.Offset != 0)
-                CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+            // If it's an EAX pointer, free it from the list
+            if (reg.Operand.OpBase == OperandBase.Eax)
+            {
+                if (reg.WasEaxInUse)
+                    CodeOutput.EmitPop(Operand.Eax);
+
+                _currentEAXUsers.Remove(reg);
+            }
             else
             {
-                int regNum = reg.Operand.OpBase switch
+                if (reg.Operand.Offset != 0)
+                    CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(4));
+                else
                 {
-                    OperandBase.Edi => 0,
-                    OperandBase.Esi => 1,
-                    OperandBase.Ecx => 2,
-                    OperandBase.Ebx => 3,
-                    OperandBase.Edx => 4,
-                    _ => throw new Exception("Cannot free non-register")
-                };
+                    int regNum = reg.Operand.OpBase switch
+                    {
+                        OperandBase.Edi => 0,
+                        OperandBase.Esi => 1,
+                        OperandBase.Ecx => 2,
+                        OperandBase.Ebx => 3,
+                        OperandBase.Edx => 4,
+                        _ => throw new Exception("Cannot free non-register")
+                    };
 
-                if (regNum >= 0 && regNum < numScratchRegisters)
-                {
-                    availableRegistersBitmap |= 1u << regNum; // mark the register as available
+                    if (regNum >= 0 && regNum < numScratchRegisters)
+                    {
+                        availableRegistersBitmap |= 1u << regNum; // mark the register as available
+                    }
                 }
             }
         }
