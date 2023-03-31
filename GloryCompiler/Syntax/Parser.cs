@@ -336,27 +336,22 @@ namespace GloryCompiler.Syntax
             string val = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex++;
 
-            Node leftSide;
+            Node leftSide = new VariableNode(FindIdentifier(val));
 
             // Get the LHS (whether it's an index or a variable)
-            if (ReadToken().Type == TokenType.OpenSquare)
+            while (ReadToken().Type == TokenType.OpenSquare)
             {
                 _currentIndex++;
 
-                leftSide = new IndexNode(new VariableNode(FindIdentifier(val)), ParseExpression());
+                leftSide = new IndexerNode(leftSide, ParseExpression());
 
                 if (ReadToken().Type != TokenType.CloseSquare) throw new Exception("Expected ]");
                 _currentIndex++;
-            }
-            else
-            {
-                leftSide = new VariableNode(FindIdentifier(val));
             }
 
             if (ReadToken().Type == TokenType.Equals)
             {
                 _currentIndex++;
-
 
                 // Parse the right and create the node
                 Node right = ParseExpression();
@@ -648,7 +643,7 @@ namespace GloryCompiler.Syntax
                     throw new Exception("Array index must be an integer");
 
                 // Create node
-                currentTree = new IndexNode(currentTree, index);
+                currentTree = new IndexerNode(currentTree, index);
 
                 // Handle "]"
                 if (ReadToken().Type != TokenType.CloseSquare)
@@ -851,7 +846,7 @@ namespace GloryCompiler.Syntax
                     if (newNode.Function.ReturnType == null) throw new Exception("Cannot use return value of Blank function");
                     return newNode.Function.ReturnType;
                 case NodeType.Indexer:
-                    IndexNode newwNode = (IndexNode)node;
+                    IndexerNode newwNode = (IndexerNode)node;
                     GloryType targetType = VerifyAndGetTypeOf(newwNode.Target);
                     if (targetType.Type == GloryTypes.Array)
                         return ((ArrayGloryType)VerifyAndGetTypeOf(newwNode.Target)).ItemType;

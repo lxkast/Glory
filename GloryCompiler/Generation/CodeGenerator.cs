@@ -256,7 +256,7 @@ namespace GloryCompiler.Generation
                     break;
                 case NodeType.Indexer:
 
-                    IndexNode indexNode = (IndexNode)node;
+                    IndexerNode indexNode = (IndexerNode)node;
 
                     using (AllocatedRegister indexDest = RegisterPool.Allocate())
                     {
@@ -347,15 +347,36 @@ namespace GloryCompiler.Generation
 
                     if (leftNode.NodeType == NodeType.Indexer)
                     {
-                        IndexNode indexNode2 = ((IndexNode)leftNode);
-                        Variable indexerTargetVariable = ((VariableNode)indexNode2.Target).Variable; // Assuming that the target will always be a variable as that's what the parser outputs.
+                        IndexerNode indexNode2 = (IndexerNode)leftNode;
+
+                        // Grab the target variable
+                        IndexerNode currentIndexNode = indexNode2;
+                        while (currentIndexNode.Target.NodeType == NodeType.Indexer)
+                            currentIndexNode = (IndexerNode)indexNode2.Target;
+
+                        Variable indexerTargetVariable = ((VariableNode)currentIndexNode.Target).Variable; // Assuming that the target will always be a variable as that's what the parser outputs.
 
                         using (AllocatedRegister indexReg = RegisterPool.Allocate())
                         {
-                            // Compile the index
+                            // Compile this index
                             CompileNode(indexNode2.Index, indexReg);
                             CodeOutput.EmitImul(indexReg.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)indexerTargetVariable.Type).ItemType)));
-                            
+
+                            // If our target is an indexer node, we have to multiply that into the index as well.
+                            IndexerNode currentNode = indexNode2;
+                            while (currentNode.Target.NodeType == NodeType.Indexer)
+                            {
+                                currentNode = (IndexerNode)currentNode.Target;
+
+                                using (AllocatedRegister targetIndexReg = RegisterPool.Allocate())
+                                {
+                                    CompileNode(currentNode.Index, targetIndexReg);
+                                    CodeOutput.EmitImul(targetIndexReg.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)indexerTargetVariable.Type).ItemType)));
+
+                                    // Add it by our main one
+                                    CodeOutput.EmitAdd(indexReg.Access(), targetIndexReg.Access());
+                                }
+                            }
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset

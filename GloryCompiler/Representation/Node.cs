@@ -78,12 +78,12 @@ namespace GloryCompiler.Representation
         }
     }
 
-    internal class IndexNode : Node
+    internal class IndexerNode : Node
     {
         public Node Target;
         public Node Index;
 
-        public IndexNode(Node target, Node index) : base(NodeType.Indexer)
+        public IndexerNode(Node target, Node index) : base(NodeType.Indexer)
         {
             Target = target;
             Index = index;
