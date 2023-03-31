@@ -76,7 +76,7 @@ namespace GloryCompiler.Generation
                     case ReturnStatement returnStatement:
                         if (_currentFunction.ReturnType.Type == GloryTypes.Array)
                         {
-                            CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.ForDerefReg(OperandBase.Ebp, 4 + _currentFunctionParamSize)));
+                            CompileNode(returnStatement.Expression, new AllocatedMisc(Operand.ForDerefReg(OperandBase.Ebp, 8 + _currentFunctionParamSize))); // "this is why we don't hardcode numbers in" "what do you put instead of 4" "8" - Alex 31/3/2023 15:05
                         }
                         else
                         {
@@ -397,7 +397,7 @@ namespace GloryCompiler.Generation
                         using AllocatedRegister vintermediateReg = RegisterPool.Allocate();
 
                         if (vvarType.Type == GloryTypes.Array)
-                            CompileMoveArrayData(destination, vintermediateReg, vvarType);
+                            CompileMoveArrayData(destination, vintermediateReg, vvarType, varGetDestination);
                         else
                         {
                             CodeOutput.EmitMov(vintermediateReg.Access(), varGetDestination);
@@ -436,8 +436,8 @@ namespace GloryCompiler.Generation
                         // Push parameters onto stack
                         for (int i = callNode.Args.Count - 1; i >= 0; i--)
                         {
-                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(4)); // TODO: Use the actual size of the parameter
-                            stackFrameSize += 4;
+                            CodeOutput.EmitSub(Operand.Esp, Operand.ForLiteral(sizeOf(callNode.Function.Parameters[i].Type))); // TODO: Use the actual size of the parameter
+                            stackFrameSize += sizeOf(callNode.Function.Parameters[i].Type);
                             CompileNode(callNode.Args[i], new AllocatedMisc(Operand.ForDerefReg(OperandBase.Esp)));
                         }
 
@@ -449,7 +449,7 @@ namespace GloryCompiler.Generation
                         if (returnType != null && destination != null)
                         {
                             if (returnType.Type == GloryTypes.Array)
-                                CompileMoveArrayData(destination, intermediateRegForStackDest, returnType);
+                                CompileMoveArrayData(destination, intermediateRegForStackDest, returnType, Operand.Esp);
                             else if (intermediateRegForStackDest != null)
                                 CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
                             else
@@ -472,7 +472,7 @@ namespace GloryCompiler.Generation
                         if (!destination?.IsCurrentlyRegister(OperandBase.Eax) == true)
                             CodeOutput.EmitPop(Operand.Eax);
 
-                        if (returnType.Type != GloryTypes.Array && intermediateRegForStackDest != null)
+                        if (returnType?.Type != GloryTypes.Array && intermediateRegForStackDest != null)
                             CodeOutput.EmitMov(destination.Access(), intermediateRegForStackDest.Access());
                     }
 
@@ -511,18 +511,19 @@ namespace GloryCompiler.Generation
             }
         }
 
-        private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType)
+        private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType, Operand source)
         {
             ArrayGloryType arrayTypeAsArray = (ArrayGloryType)arrayType;
             for (int i = 0; i < arrayTypeAsArray._size; i++)
             {
-                Operand destOperand = destination.Access().CopyWithOffset(i * 4);
+                Operand destOperand = destination.Access().CopyWithOffset(i * sizeOf(arrayTypeAsArray.ItemType));
 
                 if (arrayTypeAsArray.ItemType.Type == GloryTypes.Array)
-                    CompileMoveArrayData(destination, intermediateReg, arrayTypeAsArray.ItemType);
+                    CompileMoveArrayData(destination, intermediateReg, arrayTypeAsArray.ItemType, source);
                 else
                 {
-                    CodeOutput.EmitMov(intermediateReg.Access(), Operand.ForDerefReg(OperandBase.Esp, i * 4));
+                    
+                    CodeOutput.EmitMov(intermediateReg.Access(), source.CopyWithOffset(i * sizeOf(arrayTypeAsArray.ItemType)).CopyWithDerefSetTo(true));
                     CodeOutput.EmitMov(destOperand, intermediateReg.Access());
                 }
                 
@@ -642,10 +643,11 @@ namespace GloryCompiler.Generation
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
         {
             if (vars.Count == 0) return 0;
+            vars[0].Offset = 4;
             int size = sizeOf(vars[0].Type);
             for (int i = 1; i < vars.Count; i++)
             {
-                vars[i].Offset = size;
+                vars[i].Offset = size + 4;
                 size += sizeOf(vars[i].Type);
             }
             return size - 4;
