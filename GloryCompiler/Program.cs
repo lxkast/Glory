@@ -11,24 +11,13 @@ namespace GloryCompiler
 
             Lexer lexer = new Lexer(@"
 
-            blank add()
-            {
-            int[13] array;
-            array[9] = 2;
-            printInt(array[9]);
-            }
-            add();
 
+        int add(int a, int b)
+        {
+            return a + b;
+        }
 
-
-
-
-
-
-
-
-
-
+         printInt(add(12,5));
 
 
 

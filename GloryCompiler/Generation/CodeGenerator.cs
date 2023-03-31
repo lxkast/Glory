@@ -265,7 +265,11 @@ namespace GloryCompiler.Generation
 
                         if (indexNode.Target.NodeType == NodeType.Variable)
                         {
+
                             Variable variable = ((VariableNode)indexNode.Target).Variable;
+
+                            // Multiply the index by the size of items.
+                            CodeOutput.EmitImul(indexDest.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)variable.Type).ItemType)));
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
@@ -275,9 +279,11 @@ namespace GloryCompiler.Generation
                                 CodeOutput.EmitSub(indexDest.Access(), Operand.ForLiteral(variable.Offset));
                             }
                             else
+                            {
                                 CodeOutput.EmitAdd(indexDest.Access(), Operand.ForLabel("V" + variable.Name));
+                            }
 
-                            if (destination.IsRegister())
+                            if (!destination.IsDeref())
                                 CodeOutput.EmitMov(destination.Access(), indexDest.Access().CopyWithDerefSetTo(true));
                             else
                             {
@@ -296,7 +302,7 @@ namespace GloryCompiler.Generation
                     }
 
 
-
+                    
                     break;
                 case NodeType.NumberLiteral:
                     CodeOutput.EmitMov(destination.Access(), Operand.ForLiteral(((IntNode)node).Int));
@@ -348,6 +354,8 @@ namespace GloryCompiler.Generation
                         {
                             // Compile the index
                             CompileNode(indexNode2.Index, indexReg);
+                            CodeOutput.EmitImul(indexReg.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)indexerTargetVariable.Type).ItemType)));
+                            
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
@@ -382,7 +390,7 @@ namespace GloryCompiler.Generation
 
                     if (vvarType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
 
-                    if (destination.IsRegister())
+                    if (!destination.IsDeref())
                         CodeOutput.EmitMov(destination.Access(), varGetDestination);
                     else
                     {
@@ -403,9 +411,9 @@ namespace GloryCompiler.Generation
                     int paramSize = SizeOfVariables(callNode.Function.Parameters);
                     GloryType returnType = callNode.Function.ReturnType;
 
-                    if (returnType?.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
+                    if (returnType?.Type == GloryTypes.Array && destination?.IsRegister() == true) throw new Exception("Cannot move array into register");
 
-                    using (AllocatedRegister intermediateRegForStackDest = destination?.IsRegister() is false or null ? null : RegisterPool.Allocate())
+                    using (AllocatedRegister intermediateRegForStackDest = destination?.IsRegister() is true or null ? null : RegisterPool.Allocate())
                     {
                         // Refactor please
                         if (!destination?.IsCurrentlyRegister(OperandBase.Eax) == true) // Eax isn't a scratch register
@@ -433,12 +441,12 @@ namespace GloryCompiler.Generation
                             CompileNode(callNode.Args[i], new AllocatedMisc(Operand.ForDerefReg(OperandBase.Esp)));
                         }
 
-                        // Edit the call
+                        // Emit the call
                         CodeOutput.EmitCall("F" + ((CallNode)node).Function.Name);
                         CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(paramSize));
 
                         // Move the result into the relevant place
-                        if (returnType != null)
+                        if (returnType != null && destination != null)
                         {
                             if (returnType.Type == GloryTypes.Array)
                                 CompileMoveArrayData(destination, intermediateRegForStackDest, returnType);
@@ -464,7 +472,7 @@ namespace GloryCompiler.Generation
                         if (!destination?.IsCurrentlyRegister(OperandBase.Eax) == true)
                             CodeOutput.EmitPop(Operand.Eax);
 
-                        if (intermediateRegForStackDest != null)
+                        if (returnType.Type != GloryTypes.Array && intermediateRegForStackDest != null)
                             CodeOutput.EmitMov(destination.Access(), intermediateRegForStackDest.Access());
                     }
 
@@ -623,11 +631,6 @@ namespace GloryCompiler.Generation
             _currentFunction = null;
         }
 
-        private void CompileValueMove(GloryType type, Operand src, Operand dest)
-        {
-
-        }
-
         private int SizeOfVariables(List<Variable> vars)
         {
             int size = 0;
@@ -640,7 +643,7 @@ namespace GloryCompiler.Generation
         {
             if (vars.Count == 0) return 0;
             int size = sizeOf(vars[0].Type);
-            for (int i = 0; i < vars.Count; i++)
+            for (int i = 1; i < vars.Count; i++)
             {
                 vars[i].Offset = size;
                 size += sizeOf(vars[i].Type);

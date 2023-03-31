@@ -13,6 +13,7 @@ namespace GloryCompiler.Generation
         public abstract bool IsOnStack();
         public abstract bool IsRegister();
         public abstract bool IsCurrentlyRegister(OperandBase b);
+        public abstract bool IsDeref();
         public abstract Operand Access();
         public abstract void Dispose();
     }
@@ -26,6 +27,7 @@ namespace GloryCompiler.Generation
         public override bool IsCurrentlyRegister(OperandBase b) => Operand.OpBase == b;
         public override bool IsRegister() => !IsOnStack() && Operand.OpBase != OperandBase.Label;
         public override bool IsOnStack() => Operand.IsDereferenced && Operand.OpBase is OperandBase.Esp or OperandBase.Ebp;
+        public override bool IsDeref() => Operand.IsDereferenced;
         public override Operand Access() => Operand;
         public override void Dispose() { }
     }
@@ -58,6 +60,7 @@ namespace GloryCompiler.Generation
 
         public override bool IsRegister() => true;
         public override bool IsOnStack() => false;
+        public override bool IsDeref() => Operand.IsDereferenced;
 
         public override void Dispose()
         {
@@ -74,6 +77,7 @@ namespace GloryCompiler.Generation
         public override bool IsCurrentlyRegister(OperandBase b) => _innerSpace.IsCurrentlyRegister(b);
         public override bool IsOnStack() => _innerSpace.IsOnStack();
         public override bool IsRegister() => _innerSpace.IsRegister();
+        public override bool IsDeref() => true;
         public override void Dispose() => _innerSpace.Dispose();
     }
 }

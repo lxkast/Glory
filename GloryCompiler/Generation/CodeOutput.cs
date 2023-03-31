@@ -16,6 +16,7 @@ namespace GloryCompiler.Generation
         public abstract void EmitAdd(Operand operand1, Operand operand2);
         public abstract void EmitSub(Operand operand1, Operand operand2);
         public abstract void EmitMul(Operand operand);
+        public abstract void EmitImul(Operand operand1, Operand operand2);
         public abstract void EmitDiv(Operand operand);
         public abstract void EmitXor(Operand operand1, Operand operand2);
         public abstract void EmitMov(Operand operand1, Operand operand2);
@@ -131,6 +132,15 @@ namespace GloryCompiler.Generation
         {
             sw.Write("    mul ");
             EmitOperand(operand);
+            sw.WriteLine();
+        }
+        public override void EmitImul(Operand operand1, Operand operand2 )
+        {
+            sw.Write("    ");
+            sw.Write("imul ");
+            EmitOperand(operand1);
+            sw.Write(", ");
+            EmitOperand(operand2);
             sw.WriteLine();
         }
         public override void EmitDiv(Operand operand)
