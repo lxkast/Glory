@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,7 +46,7 @@ namespace GloryCompiler.Generation
             for (int i = 0; i < Parser.GlobalVariables.Count; i++)
             {
                 if (Parser.GlobalVariables[i].Type.Type == GloryTypes.Array)
-                    CodeOutput.EmitDataArray("V" + Parser.GlobalVariables[i].Name, ((ArrayGloryType)Parser.GlobalVariables[i].Type)._size);
+                    CodeOutput.EmitDataArray("V" + Parser.GlobalVariables[i].Name, sizeOf((ArrayGloryType)Parser.GlobalVariables[i].Type) / 4);
                 else
                     CodeOutput.EmitData("V" + Parser.GlobalVariables[i].Name, null);
             }
@@ -265,11 +266,13 @@ namespace GloryCompiler.Generation
 
                         if (indexNode.Target.NodeType == NodeType.Variable)
                         {
-
                             Variable variable = ((VariableNode)indexNode.Target).Variable;
+                            GloryType itemType = ((ArrayGloryType)variable.Type).ItemType;
+
+                            if (itemType.Type == GloryTypes.Array && destination.IsRegister()) throw new Exception("Cannot move array into register");
 
                             // Multiply the index by the size of items.
-                            CodeOutput.EmitImul(indexDest.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)variable.Type).ItemType)));
+                            CodeOutput.EmitImul(indexDest.Access(), Operand.ForLiteral(sizeOf(itemType)));
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
@@ -283,7 +286,11 @@ namespace GloryCompiler.Generation
                                 CodeOutput.EmitAdd(indexDest.Access(), Operand.ForLabel("V" + variable.Name));
                             }
 
-                            if (!destination.IsDeref())
+                            // If our arrays contains arrays (multi-dimensional), make sure we do a stack-based move on that!
+                            if (itemType.Type == GloryTypes.Array)
+                                using (AllocatedRegister intermediateReg19999 = RegisterPool.Allocate())
+                                    CompileMoveArrayData(destination, intermediateReg19999, itemType, new AllocatedDeref(indexDest));
+                            else if (!destination.IsDeref())
                                 CodeOutput.EmitMov(destination.Access(), indexDest.Access().CopyWithDerefSetTo(true));
                             else
                             {
@@ -294,6 +301,7 @@ namespace GloryCompiler.Generation
                                 }
                             }
                         }
+                        else throw new Exception("Can only index variables at the moment.");
                         //else if
                         //{
                         //    CodeOutput.EmitAdd(Operand.Esp, Operand.ForLiteral(sizeOf()));
@@ -349,34 +357,21 @@ namespace GloryCompiler.Generation
                     {
                         IndexerNode indexNode2 = (IndexerNode)leftNode;
 
-                        // Grab the target variable
+                        // Grab the target variable (reaching through index nodes if necessary)
                         IndexerNode currentIndexNode = indexNode2;
+                        int indexerDepth = 0;
                         while (currentIndexNode.Target.NodeType == NodeType.Indexer)
+                        {
                             currentIndexNode = (IndexerNode)indexNode2.Target;
+                            indexerDepth++;
+                        }
 
-                        Variable indexerTargetVariable = ((VariableNode)currentIndexNode.Target).Variable; // Assuming that the target will always be a variable as that's what the parser outputs.
+                        Variable indexerTargetVariable = ((VariableNode)currentIndexNode.Target).Variable; // Assuming that the target at the end of it all will always be a variable as that's what the parser outputs.
 
                         using (AllocatedRegister indexReg = RegisterPool.Allocate())
                         {
-                            // Compile this index
-                            CompileNode(indexNode2.Index, indexReg);
-                            CodeOutput.EmitImul(indexReg.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)indexerTargetVariable.Type).ItemType)));
-
-                            // If our target is an indexer node, we have to multiply that into the index as well.
-                            IndexerNode currentNode = indexNode2;
-                            while (currentNode.Target.NodeType == NodeType.Indexer)
-                            {
-                                currentNode = (IndexerNode)currentNode.Target;
-
-                                using (AllocatedRegister targetIndexReg = RegisterPool.Allocate())
-                                {
-                                    CompileNode(currentNode.Index, targetIndexReg);
-                                    CodeOutput.EmitImul(targetIndexReg.Access(), Operand.ForLiteral(sizeOf(((ArrayGloryType)indexerTargetVariable.Type).ItemType)));
-
-                                    // Add it by our main one
-                                    CodeOutput.EmitAdd(indexReg.Access(), targetIndexReg.Access());
-                                }
-                            }
+                            // Compile the index access into the indexReg given.
+                            CompileIndexerAccessOffset(indexReg, indexNode2, ((ArrayGloryType)indexerTargetVariable.Type).ItemType, indexerDepth);
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
@@ -418,7 +413,7 @@ namespace GloryCompiler.Generation
                         using AllocatedRegister vintermediateReg = RegisterPool.Allocate();
 
                         if (vvarType.Type == GloryTypes.Array)
-                            CompileMoveArrayData(destination, vintermediateReg, vvarType, varGetDestination);
+                            CompileMoveArrayData(destination, vintermediateReg, vvarType, new AllocatedMisc(varGetDestination));
                         else
                         {
                             CodeOutput.EmitMov(vintermediateReg.Access(), varGetDestination);
@@ -470,7 +465,7 @@ namespace GloryCompiler.Generation
                         if (returnType != null && destination != null)
                         {
                             if (returnType.Type == GloryTypes.Array)
-                                CompileMoveArrayData(destination, intermediateRegForStackDest, returnType, Operand.Esp);
+                                CompileMoveArrayData(destination, intermediateRegForStackDest, returnType, new AllocatedMisc(Operand.Esp));
                             else if (intermediateRegForStackDest != null)
                                 CodeOutput.EmitMov(intermediateRegForStackDest.Access(), Operand.Eax);
                             else
@@ -532,7 +527,39 @@ namespace GloryCompiler.Generation
             }
         }
 
-        private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType, Operand source)
+        private void CompileIndexerAccessOffset(AllocatedRegister indexReg, IndexerNode currentNode, GloryType topArrayType, int depth)
+        {
+            bool isDeepest = false;
+
+            // If we have an indexer on the left of this one, compile that first.
+            if (currentNode.Target.NodeType == NodeType.Indexer)
+                CompileIndexerAccessOffset(indexReg, (IndexerNode)currentNode.Target, topArrayType, depth - 1);
+            else
+                isDeepest = true;
+
+            // Get the type at the current depth.
+            GloryType type = topArrayType;
+            for (int i = 0; i < depth; i++)
+                type = ((ArrayGloryType)topArrayType).ItemType;
+
+            // If we're on the deepest (and therefore the first to be generated) index access, move directly into our index register instead of having a middle one that adds.
+            if (isDeepest)
+            {
+                CompileNode(currentNode.Index, indexReg);
+                CodeOutput.EmitImul(indexReg.Access(), Operand.ForLiteral(sizeOf(type)));
+            }
+            else
+                using (AllocatedRegister targetIndexReg = RegisterPool.Allocate())
+                {
+                    CompileNode(currentNode.Index, targetIndexReg);
+                    CodeOutput.EmitImul(targetIndexReg.Access(), Operand.ForLiteral(sizeOf(type)));
+
+                    // Add it to our main one
+                    CodeOutput.EmitAdd(indexReg.Access(), targetIndexReg.Access());
+                }
+        }
+
+        private void CompileMoveArrayData(AllocatedSpace destination, AllocatedRegister intermediateReg, GloryType arrayType, AllocatedSpace source)
         {
             ArrayGloryType arrayTypeAsArray = (ArrayGloryType)arrayType;
             for (int i = 0; i < arrayTypeAsArray._size; i++)
@@ -544,7 +571,7 @@ namespace GloryCompiler.Generation
                 else
                 {
                     
-                    CodeOutput.EmitMov(intermediateReg.Access(), source.CopyWithOffset(i * sizeOf(arrayTypeAsArray.ItemType)).CopyWithDerefSetTo(true));
+                    CodeOutput.EmitMov(intermediateReg.Access(), source.Access().CopyWithOffset(i * sizeOf(arrayTypeAsArray.ItemType)).CopyWithDerefSetTo(true));
                     CodeOutput.EmitMov(destOperand, intermediateReg.Access());
                 }
                 
@@ -671,7 +698,7 @@ namespace GloryCompiler.Generation
                 vars[i].Offset = size + 4;
                 size += sizeOf(vars[i].Type);
             }
-            return size - 4;
+            return size;
         }
 
         public int sizeOf(GloryType type)
