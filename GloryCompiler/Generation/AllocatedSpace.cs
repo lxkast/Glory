@@ -10,10 +10,13 @@ namespace GloryCompiler.Generation
     // This could be a register, a place on the stack, a global, literally anything that's in place.
     internal abstract class AllocatedSpace : IDisposable
     {
-        public abstract bool IsOnStack();
-        public abstract bool IsRegister();
-        public abstract bool IsCurrentlyRegister(OperandBase b);
+        public bool IsRegister() => IsRegisterGivenDeref(IsDeref());
+        public bool IsOnStack() => IsOnStackGivenDeref(IsDeref());
         public abstract bool IsDeref();
+        public abstract bool IsOnStackGivenDeref(bool deref);
+        public abstract bool IsRegisterGivenDeref(bool deref);
+        public abstract bool IsCurrentlyRegister(OperandBase b);
+
         public abstract Operand Access();
         public abstract void Dispose();
     }
@@ -25,8 +28,8 @@ namespace GloryCompiler.Generation
         public Operand Operand;
         public AllocatedMisc(Operand operand) => Operand = operand;
         public override bool IsCurrentlyRegister(OperandBase b) => Operand.OpBase == b;
-        public override bool IsRegister() => !IsOnStack() && Operand.OpBase != OperandBase.Label;
-        public override bool IsOnStack() => Operand.IsDereferenced && Operand.OpBase is OperandBase.Esp or OperandBase.Ebp;
+        public override bool IsRegisterGivenDeref(bool deref) => !deref && !IsOnStack() && Operand.OpBase != OperandBase.Label;
+        public override bool IsOnStackGivenDeref(bool deref) => deref && Operand.OpBase is OperandBase.Esp or OperandBase.Ebp;
         public override bool IsDeref() => Operand.IsDereferenced;
         public override Operand Access() => Operand;
         public override void Dispose() { }
@@ -58,8 +61,8 @@ namespace GloryCompiler.Generation
             return Operand;
         }
 
-        public override bool IsRegister() => true;
-        public override bool IsOnStack() => false;
+        public override bool IsRegisterGivenDeref(bool deref) => !deref;
+        public override bool IsOnStackGivenDeref(bool deref) => false;
         public override bool IsDeref() => Operand.IsDereferenced;
 
         public override void Dispose()
@@ -75,8 +78,8 @@ namespace GloryCompiler.Generation
 
         public override Operand Access() => _innerSpace.Access().CopyWithDerefSetTo(true);
         public override bool IsCurrentlyRegister(OperandBase b) => _innerSpace.IsCurrentlyRegister(b);
-        public override bool IsOnStack() => _innerSpace.IsOnStack();
-        public override bool IsRegister() => _innerSpace.IsRegister();
+        public override bool IsOnStackGivenDeref(bool deref) => _innerSpace.IsOnStackGivenDeref(deref);
+        public override bool IsRegisterGivenDeref(bool deref) => _innerSpace.IsRegisterGivenDeref(deref);
         public override bool IsDeref() => true;
         public override void Dispose() => _innerSpace.Dispose();
     }
