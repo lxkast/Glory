@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GloryCompiler.Representation
 {
-    internal class Statement
+    public class Statement
     {
 
     }

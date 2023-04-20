@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GloryCompiler.Generation
 {
-    internal abstract class CodeOutput
+    public abstract class CodeOutput
     {
         public int LabelCount = 0;
         public abstract void StartTextSection();
@@ -39,7 +39,7 @@ namespace GloryCompiler.Generation
         public abstract void EmitJmp(string label);
     }
 
-    internal class ASMOutput : CodeOutput
+    public class ASMOutput : CodeOutput
     {
         StreamWriter sw;
         public ASMOutput(StreamWriter streamw)

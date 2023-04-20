@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GloryCompiler.Syntax
 {
-    internal class Token
+    public class Token
     {
         public TokenType Type;
         public Token(TokenType type) => Type = type;

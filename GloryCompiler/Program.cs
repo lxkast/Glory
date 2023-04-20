@@ -11,17 +11,13 @@ namespace GloryCompiler
 
             Lexer lexer = new Lexer(@"
 
-            int[3][2] array(int[3][2] returnarray){return returnarray;}
-            int[3][2][6] a; 
-            a[0][0][0] = 1; 
-            a[0][0][1] = 2;
-            a[0][0][2] = 3;
-            a[2][1][2] = 4;
-            printInt(array(a[2])[1][2]);
-
-
-
-            #printInt(a[0][1]);
+            
+            int add(int a, int b)
+            {
+                return a + b;
+            }
+            printInt(add(2,5));
+        
 
 
 

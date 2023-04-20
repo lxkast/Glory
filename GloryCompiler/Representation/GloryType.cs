@@ -7,7 +7,7 @@ using GloryCompiler.Syntax;
 
 namespace GloryCompiler.Representation
 {
-    internal class GloryType
+    public class GloryType
     {
 
         public GloryTypes Type;

@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GloryCompiler", "GloryCompiler\GloryCompiler.csproj", "{C2596CD3-9F93-4CAA-B9DB-40D7BD8D7BEF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GloryCompiler", "GloryCompiler\GloryCompiler.csproj", "{C2596CD3-9F93-4CAA-B9DB-40D7BD8D7BEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GloryCompiler.UnitTests", "GloryCompiler.UnitTests\GloryCompiler.UnitTests.csproj", "{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{C2596CD3-9F93-4CAA-B9DB-40D7BD8D7BEF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C2596CD3-9F93-4CAA-B9DB-40D7BD8D7BEF}.Release|x86.ActiveCfg = Release|x86
 		{C2596CD3-9F93-4CAA-B9DB-40D7BD8D7BEF}.Release|x86.Build.0 = Release|x86
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Debug|x86.Build.0 = Debug|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Release|x86.ActiveCfg = Release|Any CPU
+		{C8055AC3-D655-438C-ADDF-3912C0FCFFBA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

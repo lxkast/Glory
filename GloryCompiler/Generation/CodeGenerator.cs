@@ -9,14 +9,14 @@ using GloryCompiler.Syntax;
 
 namespace GloryCompiler.Generation
 {
-    internal class CodeGenerator
+    public class CodeGenerator
     {
-        public List<Statement> GlobalStatements;
-        public List<Variable> GlobalVariables;
-        public List<Function> GlobalFunctions;
+        internal List<Statement> GlobalStatements;
+        internal List<Variable> GlobalVariables;
+        internal List<Function> GlobalFunctions;
         public CodeOutput CodeOutput;
         public Parser Parser;
-        public RegisterAllocator RegisterPool;
+        internal RegisterAllocator RegisterPool;
         Function _currentFunction;
         int _currentFunctionParamSize;
         public int stackFrameSize;
@@ -65,7 +65,7 @@ namespace GloryCompiler.Generation
 
         }
 
-        public void CompileStatements(List<Statement> statements)
+        void CompileStatements(List<Statement> statements)
         {
             for (int i = 0; i < statements.Count; i++)
             {
@@ -140,7 +140,7 @@ namespace GloryCompiler.Generation
             }
         }
 
-        public void CompileNode(Node node, AllocatedSpace destination)
+        void CompileNode(Node node, AllocatedSpace destination)
         {
             switch (node.NodeType)
             {
@@ -686,7 +686,7 @@ namespace GloryCompiler.Generation
                 return Operand.ForDerefLabel("V" + variable.Name);
         }
 
-        public void CompileFunction(Function function)
+        void CompileFunction(Function function)
         {
             /*Lets say we have an add function:
               
@@ -770,7 +770,7 @@ namespace GloryCompiler.Generation
             return size;
         }
 
-        public int sizeOf(GloryType type)
+        int sizeOf(GloryType type)
         {
             // Int - 4 bytes
             // Bool - 4 bytes

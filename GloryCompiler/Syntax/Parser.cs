@@ -7,13 +7,13 @@ using GloryCompiler.Representation;
 
 namespace GloryCompiler.Syntax
 {
-    internal class Parser
+    public class Parser
     {
         int _currentIndex;
         List<Token> _tokens;
-        public List<Statement> GlobalStatements;
-        public List<Variable> GlobalVariables;
-        public List<Function> _GlobalFunctions;
+        internal List<Statement> GlobalStatements;
+        internal List<Variable> GlobalVariables;
+        internal List<Function> _GlobalFunctions;
         List<Variable> _currentVariables;
         private Function _currentFunction;
 
@@ -190,7 +190,7 @@ namespace GloryCompiler.Syntax
             }
         }
 
-        public void ParseFunction(GloryType returnType)
+        void ParseFunction(GloryType returnType)
         {
             string name = ((IdentifierLiteralToken)ReadToken()).Val;
             _currentIndex += 2;

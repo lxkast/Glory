@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GloryCompiler.Syntax
 {
-    internal class Lexer
+    public class Lexer
     {
         string _currentStr;
         int _currentPos;

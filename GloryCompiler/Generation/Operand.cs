@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GloryCompiler.Generation
 {
-    internal class Operand
+    public class Operand
     {
         public bool IsDereferenced;
         public OperandBase OpBase;
