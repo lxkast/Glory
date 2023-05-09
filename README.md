@@ -147,7 +147,7 @@ printInt(factorial(5));
 ```python
 # bubble sort algorithm
 
-int[8] myArr;
+int[8] myArr; # = [10,2,5,3,0,10,120,25];
 # The pain of having no array literals
 myArr[0] = 10; myArr[1] = 2; myArr[2] = 5; myArr[3] = 3;
 myArr[4] = 0; myArr[5] = 10; myArr[6] = 120; myArr[7] = 25;
@@ -180,4 +180,5 @@ while (i < 8)
 ```
 `Output: 0235101025120`
 
+Please bear in mind Glory is a proof-of-concept, rather than a language that is intended to be used.
 There's a lot of bugs, things that need fixing, and cases that haven't yet been accounted for, so if you find anything, please leave an issue or a pull request!
