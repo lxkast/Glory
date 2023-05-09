@@ -144,7 +144,7 @@ printInt(factorial(5));
 ```
 `Output: 120`
 
-```
+```python
 # bubble sort algorithm
 
 int[8] myArr;
