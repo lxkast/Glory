@@ -58,10 +58,17 @@ namespace GloryCompiler.Syntax
 
         private void AddVariableToList(Variable variable)
         {
-            if (_currentBlock == null)
+            if (_currentBlock != null)
+                _currentBlock.Vars.Add(variable);
+
+            if (_currentFunction == null)
                 GlobalVariables.Add(variable);
             else
-                _currentBlock.Vars.Add(variable);
+            {
+                // Don't add it to the function twice if we're in the outer-most scope of the function
+                if (_currentFunction != _currentBlock)
+                    _currentFunction.EverySingleVar.Add(variable);
+            }
 
             _currentVariables.Add(variable);
         }

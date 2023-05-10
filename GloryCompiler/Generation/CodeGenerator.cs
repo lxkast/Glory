@@ -283,7 +283,7 @@ namespace GloryCompiler.Generation
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
-                            if (_currentFunction != null && _currentFunction.Vars.Contains(v))
+                            if (_currentFunction != null && _currentFunction.EverySingleVar.Contains(v))
                             {
                                 CodeOutput.EmitAdd(indexDest.Access(), Operand.Ebp);
                                 CodeOutput.EmitSub(indexDest.Access(), Operand.ForLiteral(v.Offset));
@@ -414,7 +414,7 @@ namespace GloryCompiler.Generation
 
                             // For indexing a variable, access at the offset of that variable.
                             // For a local variable, perform one add for esp and a subtract for the offset
-                            if (_currentFunction != null && _currentFunction.Vars.Contains(baseVariable))
+                            if (_currentFunction != null && _currentFunction.EverySingleVar.Contains(baseVariable))
                             {
                                 CodeOutput.EmitAdd(indexReg.Access(), Operand.Ebp);
                                 CodeOutput.EmitSub(indexReg.Access(), Operand.ForLiteral(baseVariable.Offset));
@@ -680,7 +680,7 @@ namespace GloryCompiler.Generation
             Variable variable = ((VariableNode)leftNode).Variable;
             type = variable.Type;
 
-            if (_currentFunction != null && _currentFunction.Vars.Contains(variable))
+            if (_currentFunction != null && _currentFunction.EverySingleVar.Contains(variable))
                 return Operand.ForDerefReg(OperandBase.Ebp, -variable.Offset);
             else
                 return Operand.ForDerefLabel("V" + variable.Name);
@@ -700,16 +700,16 @@ namespace GloryCompiler.Generation
               
                        +---------------+
                        |ret array space|
-                       +---------------+
-                       |      b        |   <- argumemts are pushed onto the stack in reverse order
                        |---------------|
-                       |      a        |
+                       |      b        |   
                        |---------------|
-                       |return address |   <- the return address is automatically pushed when running a "call" instruction
+                       |      a        |   <- stack pointer (ESP register)
+                       |---------------|
+                       |return address |   
                        |---------------|
                        |   old ebp     |   
                        |---------------|
-                       |      c        |   <- local variables
+                       |      c        |   
                        +---------------+
 
 

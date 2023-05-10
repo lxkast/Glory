@@ -11,13 +11,15 @@ namespace GloryCompiler.Representation
         public string Name;
         public GloryType ReturnType;
         public List<Variable> Parameters;
+        public List<Variable> EverySingleVar;
 
         public Function(List<Variable> parameters, string name, GloryType returnType)
         {
             Parameters = parameters;
             ReturnType = returnType;
             Name = name;
-            Vars.AddRange(Parameters);
+            EverySingleVar = new List<Variable>();
+            EverySingleVar.AddRange(Parameters);
         }
     }
 
