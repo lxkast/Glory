@@ -94,7 +94,7 @@ Until the website is complete, here are a few notes detailing Glory's syntax.
 
 - Glory's syntax is **C-like**, meaning blocks of code are denoted by curly braces `{ }` and statements end with a semicolon `;`.
 - Functions are also syntatically equivalent to C, except the void keyword is replaced with the `blank` keyword.
-- Conditional statements, such as while loops and if statements, do not have parentheses surrounding the conditional statement.
+- Conditional statements, such as while loops and if statements, do not require parentheses surrounding the conditional statement.
 - All functions must be defined previously in the program to be able to use them. (And no, you currently cannot forward declare functions in Glory. Too bad!)
 - The compiler understands order of operations. `1 + 2 * 3` is treated the same as `1 + (2 * 3)`.
 - Glory supports compound assignment operators (`+=`, `-=`, `*=` etc).
@@ -104,13 +104,12 @@ Until the website is complete, here are a few notes detailing Glory's syntax.
 - Glory doesn't yet support for loops (will add soon), array literals, strings, floats or dynamically allocated variables. These features are all planned to be implemented sometime.
 - Glory allows for multidimensional arrays. They can be declared as `int[a][b] arr;` where a is the number of items in each list, and b being the number of lists.
 - Indexing a multidimensional array can be thought of as the inverse of the declaration. Where the `[]`is indexing the outer array, then the next is indexing one deeper.
-- Functions that return an array can be indexed on the call. For example a function `dProduct` that returns an array can be used like `dProduct()[1]`. Be aware that this syntax is currently broken for functions returning multidimensional arrays, and will be fixed soon.
-- In fact I will make this clear here, **any function that involves array indexing is likely to not function properly, or not compile**. This will be fixed soon.
+- Functions that return an array can be indexed on the call. For example a function `dProduct` that returns an array can be used like `dProduct()[1]`.
 - Glory does not do bounds checking for arrays. If an array is 5 items large and you try to index the 8th item, undefined behaviour will occur.
 - You can only print integers to the console, through the `printInt()` native function.
 ## Example programs
+### Iterative Factorial
 ```python
-# iterative factorial:
 int factorial(int n)
 {
     int answer = 1;
@@ -125,12 +124,11 @@ printInt(factorial(6));
 ```
 `Output: 720` 
 
-
+## Recursive Factorial
 ```python
-# recursive factorialL
 int factorial(int n)
 {
-	if (n == 0)
+	if n == 0
 	{
 		return 1;
 	}
@@ -144,38 +142,41 @@ printInt(factorial(5));
 ```
 `Output: 120`
 
+### Bubble Sort
 ```python
-# bubble sort algorithm
+int[8] sort(int[8] arr)
+{
+    int i = 0;
+    while i < 8
+    {
+        int j = 0;
+        while j < 8 - i - 1
+        {
+            if arr[j] > arr[j + 1]
+            {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+    return arr;
+}
 
 int[8] myArr; # = [10,2,5,3,0,10,120,25];
 # The pain of having no array literals
 myArr[0] = 10; myArr[1] = 2; myArr[2] = 5; myArr[3] = 3;
 myArr[4] = 0; myArr[5] = 10; myArr[6] = 120; myArr[7] = 25;
 
+int[8] sorted = sort(myArr);
+
 int i = 0;
-while (i < 8)
+while(i < 8)
 {
-    int j = 0;
-    while (j < 8 - i - 1)
-    {
-		# change > to < to sort in descending order
-        if (myArr[j] > myArr[j + 1])
-        {
-            int temp = myArr[j];
-            myArr[j] = myArr[j + 1];
-            myArr[j + 1] = temp;
-        }
-        j += 1;  # increment j inside the inner loop
-    }
-    i += 1;  # increment i inside the outer loop
-}
-
-
-i = 0;  # initialize i before the loop
-while (i < 8)
-{
-    printInt(myArr[i]);
-    i += 1;  # increment i inside the loop
+    printInt(sorted[i]);
+    i+= 1;
 }
 ```
 `Output: 0235101025120`
