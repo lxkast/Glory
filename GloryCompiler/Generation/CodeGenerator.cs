@@ -611,8 +611,11 @@ namespace GloryCompiler.Generation
                 type = ((ArrayGloryType)type).ItemType;
 
             // If we're on the deepest (and therefore the first to be generated) index access, move directly into our index register instead of having a middle one that adds.
+            
             if (isDeepest)
             {
+                //bool isMovingUp = currentNode.Target is VariableNode varNode ? varNode.Variable.Offset < 0 : true;
+
                 CompileNode(currentNode.Index, indexReg);
                 CodeOutput.EmitImul(indexReg.Access(), Operand.ForLiteral(sizeOf(type)));
             }
@@ -703,13 +706,13 @@ namespace GloryCompiler.Generation
                        |---------------|
                        |      b        |   
                        |---------------|
-                       |      a        |   <- stack pointer (ESP register)
+                       |      a        |   
                        |---------------|
-                       |return address |   
+                       |return address |   <- ebp+4
                        |---------------|
-                       |   old ebp     |   
+                       |   old ebp     |   <- ebp
                        |---------------|
-                       |      c        |   
+                       |      c        |   <- ebp-4
                        +---------------+
 
 
@@ -725,25 +728,21 @@ namespace GloryCompiler.Generation
 
             _currentFunction = function;
 
-            int size = SizeOfVariablesAndAssignOffsets(function.Vars);
-            _currentFunctionParamSize = SizeOfVariablesAndAssignOffsets(function.Parameters);
+            // Assign all the local variables (ignoring parameters)
+            int size = SizeOfVariablesAndAssignOffsets(function.EverySingleVar.Where(v => !function.Parameters.Contains(v)).ToList());
+            _currentFunctionParamSize = SizeOfParametersAndAssignOffsets(function.Parameters);
+
             CodeOutput.EmitLabel("F" + function.Name);
 
-            CompilePrologue(size - _currentFunctionParamSize);
+            CompilePrologue(size);
             stackFrameSize += size;
 
             for (int i = 0; i < function.Parameters.Count; i++)
-            {
-                function.Vars[i].Offset *= -1;
-                function.Vars[i].Offset -= 4;
-            }
-            for (int i = function.Parameters.Count; i < function.Vars.Count; i++)
-            {
-                function.Vars[i].Offset -= _currentFunctionParamSize;
-            }
+                function.EverySingleVar[i].Offset *= -1;
+
             CompileStatements(function.Code);
 
-            CompileEpilogue(size - _currentFunctionParamSize);
+            CompileEpilogue(size);
             stackFrameSize -= size;
 
             _currentFunction = null;
@@ -760,11 +759,24 @@ namespace GloryCompiler.Generation
         private int SizeOfVariablesAndAssignOffsets(List<Variable> vars)
         {
             if (vars.Count == 0) return 0;
-            vars[0].Offset = 4;
+            int size = sizeOf(vars[0].Type);
+            vars[0].Offset = size + 4 - 4; // "+ 4" jumps over old ebp, "- 4" makes sure we're pointing at the "last int" of the thing
+            for (int i = 1; i < vars.Count; i++)
+            {
+                size += sizeOf(vars[i].Type);
+                vars[i].Offset = size + 4 - 4;
+            }
+            return size;
+        }
+
+        private int SizeOfParametersAndAssignOffsets(List<Variable> vars)
+        {
+            if (vars.Count == 0) return 0;
+            vars[0].Offset = 8; // "+ 8" jumps over the return address/old ebp
             int size = sizeOf(vars[0].Type);
             for (int i = 1; i < vars.Count; i++)
             {
-                vars[i].Offset = size + 4;
+                vars[i].Offset = size + 8;
                 size += sizeOf(vars[i].Type);
             }
             return size;

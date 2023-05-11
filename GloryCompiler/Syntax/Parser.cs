@@ -65,9 +65,8 @@ namespace GloryCompiler.Syntax
                 GlobalVariables.Add(variable);
             else
             {
-                // Don't add it to the function twice if we're in the outer-most scope of the function
-                if (_currentFunction != _currentBlock)
-                    _currentFunction.EverySingleVar.Add(variable);
+                
+                _currentFunction.EverySingleVar.Add(variable);
             }
 
             _currentVariables.Add(variable);
@@ -249,6 +248,7 @@ namespace GloryCompiler.Syntax
                 BlockStatement previousBlock = EnterBlock(func);
                 ParseStatements();
                 ExitBlock(previousBlock);
+                //func.EverySingleVar.AddRange(func.Vars);
 
                 _currentFunction = null;
 
