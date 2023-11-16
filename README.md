@@ -8,6 +8,13 @@ Glory currently only supports NASM output for Windows 10. This means an external
 
 - In MinGW installation manager, install `mingw-32-base` bin.
 
+![image](https://github.com/lxkast/Glory/assets/86862094/88aa8ecc-a77f-4e58-ad97-5729216f3d8c)
+
+- Hit `Apply Changes`
+
+![image](https://github.com/lxkast/Glory/assets/86862094/5b08cc48-5364-4d20-b304-a3ed8cb46516)
+
+
 - Install NASM to `C:\MinGW\bin`.
 
 - Go to `Advanced System Settings` on Windows.
@@ -57,7 +64,7 @@ gcc helloworld.obj -o helloworld.exe
 
 ![image](https://user-images.githubusercontent.com/86862094/225109373-cdb62ea6-c2c7-43f8-8c1e-5c8bc955329e.png)
 
-## Glory installation
+## Glory Installation
 
 Once the assembler and linker is setup on your system, you can install Glory from the `Releases` section of the repository.
 
