@@ -1,5 +1,9 @@
 # Glory
-A custom-made "written in 1 month" compiler for a custom-made "written in 1 day" language.
+A compiler front-end and back-end built from scratch in 1 month.
+
+> [!NOTE]
+>Please bear in mind Glory is a proof-of-concept, rather than a language that is intended to be used.
+>There are no intentions of updating Glory at the moment.
 
 # Windows Installation
 Glory currently only supports NASM output for Windows 10. This means an external assembler and linker need to be installed onto your system to use Glory:
@@ -88,34 +92,23 @@ glorycompiler [path to glr file]
 
 ![image](https://github.com/lxkast/Glory/assets/86862094/49a23e41-917a-422f-b509-7a2f7fc6db22)
 
-# Documentation
+# Features
+- Multidimensional arrays
+- Function call indexing
+- Dead code elimination
+- Recursion
+- Order of operations (`1 + 2 * 3` is treated as `1 + (2 * 3)`)
+- While loops
 
-The website for docs is currently still under development.
-![image](https://github.com/lxkast/Glory/assets/86862094/fbac9e06-7980-4e83-906e-353ca19e4a29)
+# Limitations
+- No floats, strings or other data types/structures
+- No exponentiation operator
+- No bound checking for arrays
+- No array literals
+- Only able to print integers using `printInt()`
 
-Looks great I know.
-
-Until the website is complete, here are a few notes detailing Glory's syntax.
-
-## Syntax
-
-- Glory's syntax is **C-like**, meaning blocks of code are denoted by curly braces `{ }` and statements end with a semicolon `;`.
-- Functions are also syntatically equivalent to C, except the void keyword is replaced with the `blank` keyword.
-- Conditional statements, such as while loops and if statements, do not require parentheses surrounding the conditional statement.
-- All functions must be defined previously in the program to be able to use them. (And no, you currently cannot forward declare functions in Glory. Too bad!)
-- The compiler understands order of operations. `1 + 2 * 3` is treated the same as `1 + (2 * 3)`.
-- Glory supports compound assignment operators (`+=`, `-=`, `*=` etc).
-- The power operation is represented by the `^` symbol.
-- Glory supports `elif` statements.
-- To make an array in glory, define the type of the items, with square brackets with an integer value, followed by the identifier. For example `int[5] arr;`. The array size must be an integer literal, as it must be known at compile time.
-- Glory doesn't yet support for loops (will add soon), array literals, strings, floats or dynamically allocated variables. These features are all planned to be implemented sometime.
-- Glory allows for multidimensional arrays. They can be declared as `int[a][b] arr;` where a is the number of items in each list, and b being the number of lists.
-- Indexing a multidimensional array can be thought of as the inverse of the declaration. Where the `[]`is indexing the outer array, then the next is indexing one deeper.
-- Functions that return an array can be indexed on the call. For example a function `dProduct` that returns an array can be used like `dProduct()[1]`.
-- Glory does not do bounds checking for arrays. If an array is 5 items large and you try to index the 8th item, undefined behaviour will occur.
-- You can only print integers to the console, through the `printInt()` native function.
-## Example programs
-### Iterative Factorial
+# Example programs
+## Iterative Factorial
 ```python
 int factorial(int n)
 {
@@ -187,6 +180,3 @@ while(i < 8)
 }
 ```
 `Output: 0235101025120`
-
-Please bear in mind Glory is a proof-of-concept, rather than a language that is intended to be used.
-There's a lot of bugs, things that need fixing, and cases that haven't yet been accounted for, so if you find anything, please leave an issue or a pull request!
